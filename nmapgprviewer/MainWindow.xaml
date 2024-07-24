@@ -1,0 +1,8 @@
+﻿<Window x:Class="nmapgprviewer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Naver Map Viewer" Height="600" Width="800">
+    <Grid>
+        <Image Name="MapImage" Stretch="Uniform" />
+    </Grid>
+</Window>
