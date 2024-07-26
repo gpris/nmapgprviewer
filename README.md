@@ -1,22 +1,22 @@
 # nmapgprviewer
 Naver static map and WPF GPR layer viewer
 
-![스크린샷 2024-07-27 002843](https://github.com/user-attachments/assets/364bd4a8-949d-4355-b2bf-a9a7ef823037)
+![실행화면](https://github.com/user-attachments/assets/364bd4a8-949d-4355-b2bf-a9a7ef823037)
 
 Simple objectives are : 
 1. to show Naver static map on WPF.
 2. to get latitude range and longtitude range of image width and height.
 3. to calculate x, y for specific lng and lat
 
-Special thanks to: 
-https://gist.github.com/pianosnake/b4a45ef6bdf2ffb2e1b44bbcca107298
-for objective #2.
+Special thanks to:     
+https://gist.github.com/pianosnake/b4a45ef6bdf2ffb2e1b44bbcca107298    
+for objective #2.    
 
-With small modifications, 
-I can get bound box of naver static map image. 
-as below:
+With small modifications,     
+I can get bound box of naver static map image.     
+as below:    
 
-![nMapBoundBoxWorkingwithdLngValue_50p](https://github.com/user-attachments/assets/21ed3c5d-3481-449f-b19e-f8baf27b650b)
+![dlng사이즈에 따른 이미지](https://github.com/user-attachments/assets/21ed3c5d-3481-449f-b19e-f8baf27b650b)
 
-![nMapBoundBoxWorkingwithdLatValue_50p](https://github.com/user-attachments/assets/1097dadc-0fe0-44b2-bea3-38db3f54de1b)
+![dlat사이즈에 따른 이미지](https://github.com/user-attachments/assets/1097dadc-0fe0-44b2-bea3-38db3f54de1b)
 
