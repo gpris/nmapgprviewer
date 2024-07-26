@@ -1,8 +1,9 @@
 ﻿<Window x:Class="nmapgprviewer.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Naver Map Viewer" Height="600" Width="800">
+        Title="Naver Map Viewer" Height="798" Width="1024">
     <Grid>
         <Image Name="MapImage" Stretch="Uniform" />
+        <TextBox Name="BoundLatLng" HorizontalAlignment="Left" Height="23" Margin="20,700,0,0" TextWrapping="Wrap" Text="Bound(Lat,Lng,Lat,Lng)" VerticalAlignment="Top" Width="804"/>
     </Grid>
 </Window>
