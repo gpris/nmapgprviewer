@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 
@@ -47,6 +49,32 @@ namespace nmapgprviewer
             return bounds;
         }
 
+        public int[] latLngToPos(double lat, double lng, int zoom, int width, int height)
+        {
+            double metersPerPixelEW = EARTH_CIR_METERS / Math.Pow(2, zoom + 9); // 가로 미터당 픽셀 since zoom level is 0 to 20 21 levels
+            double metersPerPixelNS = EARTH_CIR_METERS / Math.Pow(2, zoom + 9) * Math.Cos(toRadians(lat)); ; // 세로 미터당 픽셀
+
+            double shiftMetersEW = width / 2.0 * metersPerPixelEW; // 가로로 이동한 거리
+            double shiftMetersNS = height / 2.0 * metersPerPixelNS; // 세로로 이동한 거리
+
+            shiftDegreesEW = shiftMetersEW * degreePerMeter; // 가로로 이동한 각도
+            shiftDegreesNS = shiftMetersNS * degreePerMeter; // 세로로 이동한 각도
+
+            //latMin = lat - shiftDegreesNS;
+            //lngMin = lng - shiftDegreesEW;
+            //latMax = lat + shiftDegreesNS;
+            //lngMax = lng + shiftDegreesEW;
+            // Get each pixel differences dw, dh
+            double dw = 2.0 * (shiftDegreesEW) / width;
+            double dh = 2.0 * (shiftDegreesNS) / height;
+            int x = (int)((lng - lngMin) / dw);
+            int y = (int)((latMax - lat) / dh);
+
+
+            int[] pos = { x, y }; // return x,y in array
+            return pos;
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -61,13 +89,16 @@ namespace nmapgprviewer
             // (37.5632343980755, 126.972506835937), (37.5697656019245, 126.983493164062) dlat:0.0032, dlng:0.0054
             //latitude +=  (1.0 * 0.0065); // was latMin 
             //longitude -= (1.0 * 0.01098); // was lngMin 
+            double testLat = 37.564885;
+            double testLng = 126.978398;
 
             int zoom = 16;
             int width = 1024;
             int height = 768;
 
             // 마커 파라미터 추가
-            string markers = $"type:t|size:mid|pos:{longitude} {latitude}";
+            //string markers = $"type:t|size:mid|pos:{longitude} {latitude}";
+            string markers = $"type:t|size:mid|pos:{testLng} {testLat}";
 
             string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={longitude},{latitude}&level={zoom}&w={width}&h={height}&markers={markers}";
 
@@ -76,6 +107,7 @@ namespace nmapgprviewer
                 client.DefaultRequestHeaders.Add("X-NCP-APIGW-API-KEY-ID", clientId);
                 client.DefaultRequestHeaders.Add("X-NCP-APIGW-API-KEY", clientSecret);
                 double[] boundBox = latLngToBounds(latitude, longitude, zoom, width, height);
+                int[] pos = latLngToPos(testLat, testLng, zoom, width, height);
                 HttpResponseMessage response = await client.GetAsync(url);
                 
                 if (response.IsSuccessStatusCode)
@@ -88,11 +120,28 @@ namespace nmapgprviewer
                         bitmap.StreamSource = stream;
                         bitmap.CacheOption = BitmapCacheOption.OnLoad;
                         bitmap.EndInit();
-                        MapImage.Source = bitmap;
+
+                        WriteableBitmap writeableBitmap = new WriteableBitmap(bitmap);
+
+                        // 선의 시작점과 끝점 설정
+                        int x1 = 50, y1 = 50;
+                        int x2 = 200, y2 = 200;
+
+                        // 선 색상 설정
+                        Color lineColor = Colors.Red;
+
+                        // 선 그리기
+                        DrawLine(writeableBitmap, x1, y1, x2, y2, lineColor);
+                        //DrawLineLatLng(writeableBitmap, lat0, lng0, lat1, lng1, lineColor);
+
+
+
+                        //MapImage.Source = bitmap;
+                        MapImage.Source = writeableBitmap;
                     }
                     double dlat = latMax - latitude;
                     double dlng = lngMax - longitude;
-                    BoundLatLng.Text = $"({latMin}, {lngMin}), ({latMax}, {lngMax}) dlat:{dlat}, dlng:{dlng}";
+                    BoundLatLng.Text = $"({latMin}, {lngMin}), ({latMax}, {lngMax}) dlat:{dlat}, dlng:{dlng}, posx:{pos[0]}, posy={pos[1]}";
                     //BoundLatLng.Text = $"({boundBox[0]}, {boundBox[1]}), ({boundBox[2]}, {boundBox[3]}) dlat:{dlat}, dlng:{dlng}";
 
                 }
@@ -101,6 +150,49 @@ namespace nmapgprviewer
                     MessageBox.Show($"Error: {response.StatusCode}");
                 }
             }
+        }
+
+        private void DrawLine(WriteableBitmap bitmap, int x1, int y1, int x2, int y2, Color color)
+        {
+            int width = bitmap.PixelWidth;
+            int height = bitmap.PixelHeight;
+            int[] pixels = new int[width * height];
+            bitmap.CopyPixels(pixels, width * 4, 0);
+
+            int dx = Math.Abs(x2 - x1);
+            int dy = Math.Abs(y2 - y1);
+            int sx = x1 < x2 ? 1 : -1;
+            int sy = y1 < y2 ? 1 : -1;
+            int err = dx - dy;
+
+            while (true)
+            {
+                if (x1 >= 0 && x1 < width && y1 >= 0 && y1 < height)
+                {
+                    int pixelIndex = y1 * width + x1;
+                    pixels[pixelIndex] = color.A << 24 | color.R << 16 | color.G << 8 | color.B;
+                }
+
+                if (x1 == x2 && y1 == y2) break;
+                int e2 = 2 * err;
+                if (e2 > -dy)
+                {
+                    err -= dy;
+                    x1 += sx;
+                }
+                if (e2 < dx)
+                {
+                    err += dx;
+                    y1 += sy;
+                }
+            }
+
+            bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
+        }
+
+        private void ConvertLatLngToMapxy(double Lat, double Lng, int x, int y)
+        {
+         
         }
     }
 }

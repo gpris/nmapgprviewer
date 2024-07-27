@@ -4,6 +4,6 @@
         Title="Naver Map Viewer" Height="798" Width="1024">
     <Grid>
         <Image Name="MapImage" Stretch="Uniform" />
-        <TextBox Name="BoundLatLng" HorizontalAlignment="Left" Height="23" Margin="20,700,0,0" TextWrapping="Wrap" Text="Bound(Lat,Lng,Lat,Lng)" VerticalAlignment="Top" Width="804"/>
+        <TextBox Name="BoundLatLng" HorizontalAlignment="Left" Height="58" Margin="20,700,0,0" TextWrapping="Wrap" Text="Bound(Lat,Lng,Lat,Lng)" VerticalAlignment="Top" Width="981"/>
     </Grid>
 </Window>
