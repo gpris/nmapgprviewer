@@ -20,3 +20,6 @@ as below:
 
 ![dlat사이즈에 따른 이미지](https://github.com/user-attachments/assets/1097dadc-0fe0-44b2-bea3-38db3f54de1b)
 
+latLngToPos API to convert lat/lng to x,y of static map image file.
+A green marker of lat:37.564885 lng:126.978398  is drawn to map image position x:549, y:573  
+![스크린샷 2024-07-27 150750](https://github.com/user-attachments/assets/f200b2d4-6c1f-4bbc-88fb-07daec5f1ed3)
