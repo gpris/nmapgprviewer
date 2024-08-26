@@ -110,6 +110,8 @@ namespace nmapgprviewer
                         // 선의 시작점과 끝점 설정
                         int x1 = 50, y1 = 50;
                         int x2 = 200, y2 = 200;
+                        int[] n1pos  = latLngToPos(latitude, longitude, width, height);
+                        int[] n2pos = latLngToPos(testLat, testLng, width, height);
 
                         // 선 색상 설정
                         Color lineColor = Colors.Red;
@@ -117,7 +119,7 @@ namespace nmapgprviewer
                         int thickness = 4;
 
                         // 선 그리기
-                        DrawThickLine(writeableBitmap, x1, y1, x2, y2, lineColor, thickness);
+                        DrawThickLine(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1], lineColor, thickness);
                         // 선 그리기
                         //DrawLine(writeableBitmap, x1, y1, x2, y2, lineColor);
                         //DrawLineLatLng(writeableBitmap, lat0, lng0, lat1, lng1, lineColor);
