@@ -214,6 +214,40 @@ namespace nmapgprviewer
             bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
         }
 
+        private void DrawRoadBitmap(WriteableBitmap bitmap, int x1, int y1, int x2, int y2)
+        {
+            //int width = bitmap.PixelWidth;
+            //int height = bitmap.PixelHeight;
+            //int[] pixels = new int[width * height];
+            //bitmap.CopyPixels(pixels, width * 4, 0);
+
+            //int dx = Math.Abs(x2 - x1);
+            //int dy = Math.Abs(y2 - y1);
+            //int sx = x1 < x2 ? 1 : -1;
+            //int sy = y1 < y2 ? 1 : -1;
+            //int err = dx - dy;
+
+            //while (true)
+            //{
+            //    DrawThickPixel(pixels, width, height, x1, y1, color, thickness);
+
+            //    if (x1 == x2 && y1 == y2) break;
+            //    int e2 = 2 * err;
+            //    if (e2 > -dy)
+            //    {
+            //        err -= dy;
+            //        x1 += sx;
+            //    }
+            //    if (e2 < dx)
+            //    {
+            //        err += dx;
+            //        y1 += sy;
+            //    }
+            //}
+
+            bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
+        }
+
         private void DrawThickPixel(int[] pixels, int width, int height, int x, int y, Color color, int thickness)
         {
             int halfThickness = thickness / 2;
