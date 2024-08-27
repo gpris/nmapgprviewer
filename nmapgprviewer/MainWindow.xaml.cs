@@ -216,36 +216,10 @@ namespace nmapgprviewer
 
         private void DrawRoadBitmap(WriteableBitmap bitmap, int x1, int y1, int x2, int y2)
         {
-            //int width = bitmap.PixelWidth;
-            //int height = bitmap.PixelHeight;
-            //int[] pixels = new int[width * height];
-            //bitmap.CopyPixels(pixels, width * 4, 0);
+            BitmapImage bitmapImage = new BitmapImage(new Uri("your_image_path_here.jpg", UriKind.RelativeOrAbsolute));
 
-            //int dx = Math.Abs(x2 - x1);
-            //int dy = Math.Abs(y2 - y1);
-            //int sx = x1 < x2 ? 1 : -1;
-            //int sy = y1 < y2 ? 1 : -1;
-            //int err = dx - dy;
 
-            //while (true)
-            //{
-            //    DrawThickPixel(pixels, width, height, x1, y1, color, thickness);
-
-            //    if (x1 == x2 && y1 == y2) break;
-            //    int e2 = 2 * err;
-            //    if (e2 > -dy)
-            //    {
-            //        err -= dy;
-            //        x1 += sx;
-            //    }
-            //    if (e2 < dx)
-            //    {
-            //        err += dx;
-            //        y1 += sy;
-            //    }
-            //}
-
-            bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
+            CopyBitmapImageToWriteableBitmap(bitmapImage, bitmap);
         }
 
         private void DrawThickPixel(int[] pixels, int width, int height, int x, int y, Color color, int thickness)
@@ -264,6 +238,16 @@ namespace nmapgprviewer
                     }
                 }
             }
+        }
+
+        private void CopyBitmapImageToWriteableBitmap(BitmapImage bitmapImage, WriteableBitmap writeableBitmap)
+        {
+            int width = bitmapImage.PixelWidth;
+            int height = bitmapImage.PixelHeight;
+            int stride = width * ((bitmapImage.Format.BitsPerPixel + 7) / 8);
+            byte[] pixelData = new byte[height * stride];
+            bitmapImage.CopyPixels(pixelData, stride, 0);
+            writeableBitmap.WritePixels(new Int32Rect(0, 0, width, height), pixelData, stride, 0); // 
         }
     }
 }
