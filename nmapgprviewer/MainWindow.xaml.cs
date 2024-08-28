@@ -216,7 +216,7 @@ namespace nmapgprviewer
 
         private void DrawRoadBitmap(WriteableBitmap bitmap, int x1, int y1, int x2, int y2)
         {
-            BitmapImage bitmapImage = new BitmapImage(new Uri("C:\\Users\\Sanghyun\\Downloads\\pmsdata\\s000010000.jpg", UriKind.RelativeOrAbsolute));
+            BitmapImage bitmapImage = new BitmapImage(new Uri("..\\..\\pmsdata\\s000010000s.jpg", UriKind.RelativeOrAbsolute));
 
             int width = Math.Abs(x2 - x1);
             int height = Math.Abs(y2 - y1);
