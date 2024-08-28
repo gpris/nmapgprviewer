@@ -119,11 +119,11 @@ namespace nmapgprviewer
                         int thickness = 4;
 
                         // 선 그리기
-                        DrawThickLine(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1], lineColor, thickness);
+                        //DrawThickLine(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1], lineColor, thickness);
                         // 선 그리기
                         //DrawLine(writeableBitmap, x1, y1, x2, y2, lineColor);
                         //DrawLineLatLng(writeableBitmap, lat0, lng0, lat1, lng1, lineColor);
-
+                        DrawRoadBitmap(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1]);
 
 
                         //MapImage.Source = bitmap;
@@ -216,10 +216,12 @@ namespace nmapgprviewer
 
         private void DrawRoadBitmap(WriteableBitmap bitmap, int x1, int y1, int x2, int y2)
         {
-            BitmapImage bitmapImage = new BitmapImage(new Uri("your_image_path_here.jpg", UriKind.RelativeOrAbsolute));
+            BitmapImage bitmapImage = new BitmapImage(new Uri("C:\\Users\\Sanghyun\\Downloads\\pmsdata\\s000010000.jpg", UriKind.RelativeOrAbsolute));
 
+            int width = Math.Abs(x2 - x1);
+            int height = Math.Abs(y2 - y1);
 
-            CopyBitmapImageToWriteableBitmap(bitmapImage, bitmap);
+            CopyBitmapImageToWriteableBitmap(bitmapImage, bitmap, x1, y1, width, height);
         }
 
         private void DrawThickPixel(int[] pixels, int width, int height, int x, int y, Color color, int thickness)
@@ -240,14 +242,19 @@ namespace nmapgprviewer
             }
         }
 
-        private void CopyBitmapImageToWriteableBitmap(BitmapImage bitmapImage, WriteableBitmap writeableBitmap)
+        private void CopyBitmapImageToWriteableBitmap(BitmapImage bitmapImage, WriteableBitmap writeableBitmap, int x, int y, int w, int h)
         {
-            int width = bitmapImage.PixelWidth;
-            int height = bitmapImage.PixelHeight;
+            //int width = int( bitmapImage.PixelWidth / 10.);
+            //int height = int( bitmapImage.PixelHeight / 10.);
+            //int stride = width * ((bitmapImage.Format.BitsPerPixel + 7) / 8);
+            //byte[] pixelData = new byte[height * stride];
+            int width = (int)(bitmapImage.PixelWidth /100);
+            int height = (int)(bitmapImage.PixelHeight /100);
             int stride = width * ((bitmapImage.Format.BitsPerPixel + 7) / 8);
             byte[] pixelData = new byte[height * stride];
+
             bitmapImage.CopyPixels(pixelData, stride, 0);
-            writeableBitmap.WritePixels(new Int32Rect(0, 0, width, height), pixelData, stride, 0); // 
+            writeableBitmap.WritePixels(new Int32Rect(x, y, width, height), pixelData, stride, 0); // 
         }
     }
 }
