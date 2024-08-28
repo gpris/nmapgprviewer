@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -248,13 +249,65 @@ namespace nmapgprviewer
             //int height = int( bitmapImage.PixelHeight / 10.);
             //int stride = width * ((bitmapImage.Format.BitsPerPixel + 7) / 8);
             //byte[] pixelData = new byte[height * stride];
-            int width = (int)(bitmapImage.PixelWidth /100);
-            int height = (int)(bitmapImage.PixelHeight /100);
+            int width = (int)(bitmapImage.PixelWidth);
+            int height = (int)(bitmapImage.PixelHeight);
             int stride = width * ((bitmapImage.Format.BitsPerPixel + 7) / 8);
             byte[] pixelData = new byte[height * stride];
 
             bitmapImage.CopyPixels(pixelData, stride, 0);
             writeableBitmap.WritePixels(new Int32Rect(x, y, width, height), pixelData, stride, 0); // 
         }
+
+        //--------------------------------------------------------------------------------
+
+        //public static WritableBitmap RotateBitmap(BitmapSource source, double angle)
+        //{
+        //    // Create a DrawingVisual to render the rotated image
+        //    DrawingVisual visual = new DrawingVisual();
+        //    using (DrawingContext context = visual.RenderOpen())
+        //    {
+        //        // Set the rotation transform
+        //        context.PushTransform(new RotateTransform(angle, source.Width / 2, source.Height / 2));
+        //        // Draw the original image onto the DrawingVisual
+        //        context.DrawImage(source, new Rect(0, 0, source.Width, source.Height));
+        //    }
+
+        //    // Render the DrawingVisual to a RenderTargetBitmap
+        //    RenderTargetBitmap renderBitmap = new RenderTargetBitmap(
+        //        (int)source.Width, (int)source.Height, source.DpiX, source.DpiY, PixelFormats.Pbgra32);
+        //    renderBitmap.Render(visual);
+
+        //    // Convert the RenderTargetBitmap to a WritableBitmap
+        //    WritableBitmap writableBitmap = new WritableBitmap(renderBitmap);
+        //    return writableBitmap;
+        //}
+
+        //public static void Main()
+        //{
+        //    // Open a file dialog to select an image file
+        //    OpenFileDialog openFileDialog = new OpenFileDialog();
+        //    openFileDialog.Filter = "Image files (*.png;*.jpeg;*.jpg)|*.png;*.jpeg;*.jpg|All files (*.*)|*.*";
+        //    if (openFileDialog.ShowDialog() == true)
+        //    {
+        //        // Load the selected image file
+        //        BitmapImage bitmapImage = new BitmapImage(new Uri(openFileDialog.FileName));
+
+        //        // Rotate the image by 45 degrees
+        //        WritableBitmap rotatedBitmap = RotateBitmap(bitmapImage, 45);
+
+        //        // Save the rotated image to a file (optional)
+        //        SaveRotatedImage(rotatedBitmap, "rotated_image.png");
+        //    }
+        //}
+
+        //private static void SaveRotatedImage(WritableBitmap bitmap, string filePath)
+        //{
+        //    using (var fileStream = new System.IO.FileStream(filePath, System.IO.FileMode.Create))
+        //    {
+        //        PngBitmapEncoder encoder = new PngBitmapEncoder();
+        //        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        //        encoder.Save(fileStream);
+        //    }
+        //}
     }
 }
