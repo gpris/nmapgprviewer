@@ -111,29 +111,41 @@ namespace nmapgprviewer
                         // 선의 시작점과 끝점 설정
                         int x1 = 50, y1 = 50;
                         int x2 = 200, y2 = 200;
-                        int[] n1pos  = latLngToPos(latitude, longitude, width, height);
-                        int[] n2pos = latLngToPos(testLat, testLng, width, height);
+                        int[] n1pos  = latLngToPos(latitude, longitude, width, height); // City Hall
+                        int[] n2pos = latLngToPos(testLat, testLng, width, height); // Hotel
 
+                        x1 = n1pos[0];
+                        y1 = n1pos[1];
+                        x2 = n2pos[0];
+                        y2 = n2pos[1];  
+
+                        double radian2 = Math.Atan2(y2 - y1, x2 - x1);
+
+                        double angle2 = 90+(radian2 * 180 / Math.PI );
                         // 선 색상 설정
                         Color lineColor = Colors.Red;
                         // 선 두께 설정
                         int thickness = 4;
 
                         // 선 그리기
-                        //DrawThickLine(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1], lineColor, thickness);
+
                         // 선 그리기
                         //DrawLine(writeableBitmap, x1, y1, x2, y2, lineColor);
                         //DrawLineLatLng(writeableBitmap, lat0, lng0, lat1, lng1, lineColor);
-                        DrawRoadBitmap(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1]);
+
+                        WriteableBitmap loadedBitmap = DrawRoadBitmap( n1pos[0], n1pos[1], n2pos[0], n2pos[1]);
+
+                        DrawRotateBitmap(writeableBitmap,loadedBitmap, angle2, x1, y1);
+                        DrawThickLine(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1], lineColor, thickness);
 
 
-                        //MapImage.Source = bitmap;
                         MapImage.Source = writeableBitmap;
                     }
                     double dlat = latMax - latitude;
                     double dlng = lngMax - longitude;
                     BoundLatLng.Text = $"({latMin}, {lngMin}), ({latMax}, {lngMax}) dlat:{dlat}, dlng:{dlng}, posx:{pos[0]}, posy={pos[1]}";
-                    //BoundLatLng.Text = $"({boundBox[0]}, {boundBox[1]}), ({boundBox[2]}, {boundBox[3]}) dlat:{dlat}, dlng:{dlng}";
+                    //BoundLatLng.Text = $"({boundBox[0]}, {boundBox[1]}), ({boundBox[2]}, {boundBox[3]}) dlat:
+                    //{dlat}, dlng:{dlng}";
 
                 }
                 else
@@ -215,14 +227,18 @@ namespace nmapgprviewer
             bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
         }
 
-        private void DrawRoadBitmap(WriteableBitmap bitmap, int x1, int y1, int x2, int y2)
+        private WriteableBitmap DrawRoadBitmap( int x1, int y1, int x2, int y2)
         {
             BitmapImage bitmapImage = new BitmapImage(new Uri("..\\..\\pmsdata\\s000010000s.jpg", UriKind.RelativeOrAbsolute));
 
-            int width = Math.Abs(x2 - x1);
-            int height = Math.Abs(y2 - y1);
+            //int width = Math.Abs(x2 - x1);
+            //int height = Math.Abs(y2 - y1);
+            int width = bitmapImage.PixelWidth;
+            int height = bitmapImage.PixelHeight;
 
-            CopyBitmapImageToWriteableBitmap(bitmapImage, bitmap, x1, y1, width, height);
+            WriteableBitmap resultbitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+            CopyBitmapImageToWriteableBitmap(bitmapImage, resultbitmap, 0, 0, width, height);
+            return resultbitmap;
         }
 
         private void DrawThickPixel(int[] pixels, int width, int height, int x, int y, Color color, int thickness)
@@ -245,10 +261,6 @@ namespace nmapgprviewer
 
         private void CopyBitmapImageToWriteableBitmap(BitmapImage bitmapImage, WriteableBitmap writeableBitmap, int x, int y, int w, int h)
         {
-            //int width = int( bitmapImage.PixelWidth / 10.);
-            //int height = int( bitmapImage.PixelHeight / 10.);
-            //int stride = width * ((bitmapImage.Format.BitsPerPixel + 7) / 8);
-            //byte[] pixelData = new byte[height * stride];
             int width = (int)(bitmapImage.PixelWidth);
             int height = (int)(bitmapImage.PixelHeight);
             int stride = width * ((bitmapImage.Format.BitsPerPixel + 7) / 8);
@@ -258,56 +270,60 @@ namespace nmapgprviewer
             writeableBitmap.WritePixels(new Int32Rect(x, y, width, height), pixelData, stride, 0); // 
         }
 
-        //--------------------------------------------------------------------------------
+        public static WriteableBitmap RotateBitmap(BitmapSource source, double angle)
+        {
+            // Create a DrawingVisual to render the rotated image
+            DrawingVisual visual = new DrawingVisual();
+            using (DrawingContext context = visual.RenderOpen())
+            {
+                // Set the rotation transform
+                context.PushTransform(new RotateTransform(angle, source.Width / 2, source.Height / 2));
+                // Draw the original image onto the DrawingVisual
+                context.DrawImage(source, new Rect(0, 0, source.Width, source.Height));
+            }
 
-        //public static WritableBitmap RotateBitmap(BitmapSource source, double angle)
-        //{
-        //    // Create a DrawingVisual to render the rotated image
-        //    DrawingVisual visual = new DrawingVisual();
-        //    using (DrawingContext context = visual.RenderOpen())
-        //    {
-        //        // Set the rotation transform
-        //        context.PushTransform(new RotateTransform(angle, source.Width / 2, source.Height / 2));
-        //        // Draw the original image onto the DrawingVisual
-        //        context.DrawImage(source, new Rect(0, 0, source.Width, source.Height));
-        //    }
+            // Render the DrawingVisual to a RenderTargetBitmap
+            RenderTargetBitmap renderBitmap = new RenderTargetBitmap(
+                (int)source.Width, (int)source.Height, source.DpiX, source.DpiY, PixelFormats.Pbgra32);
+            renderBitmap.Render(visual);
 
-        //    // Render the DrawingVisual to a RenderTargetBitmap
-        //    RenderTargetBitmap renderBitmap = new RenderTargetBitmap(
-        //        (int)source.Width, (int)source.Height, source.DpiX, source.DpiY, PixelFormats.Pbgra32);
-        //    renderBitmap.Render(visual);
+            // Convert the RenderTargetBitmap to a WritableBitmap
+            WriteableBitmap writableBitmap = new WriteableBitmap(renderBitmap);
+            return writableBitmap;
+        }
 
-        //    // Convert the RenderTargetBitmap to a WritableBitmap
-        //    WritableBitmap writableBitmap = new WritableBitmap(renderBitmap);
-        //    return writableBitmap;
-        //}
+        public void  DrawRotateBitmap(WriteableBitmap outputBitmap, BitmapSource source, double angle, int x, int y)
+        {
+            double radians = angle * Math.PI / 180;
+            double cos = Math.Abs(Math.Cos(radians));
+            double sin = Math.Abs(Math.Sin(radians));
+            int newWidth = (int)(source.Width * cos + source.Height * sin);
+            int newHeight = (int)(source.Width * sin + source.Height * cos);
+            // Create a DrawingVisual to render the rotated image
+            DrawingVisual visual = new DrawingVisual();
+            using (DrawingContext context = visual.RenderOpen())
+            {
+                context.PushTransform(new TranslateTransform(newWidth / 2, newHeight / 2));
+                context.PushTransform(new RotateTransform(angle));
+                // Set the rotation transform
+                context.PushTransform(new TranslateTransform(-source.Width / 2, -source.Height / 2));
+                // Draw the original image onto the DrawingVisual
+                context.DrawImage(source, new Rect(0, 0, source.Width, source.Height));
+            }
 
-        //public static void Main()
-        //{
-        //    // Open a file dialog to select an image file
-        //    OpenFileDialog openFileDialog = new OpenFileDialog();
-        //    openFileDialog.Filter = "Image files (*.png;*.jpeg;*.jpg)|*.png;*.jpeg;*.jpg|All files (*.*)|*.*";
-        //    if (openFileDialog.ShowDialog() == true)
-        //    {
-        //        // Load the selected image file
-        //        BitmapImage bitmapImage = new BitmapImage(new Uri(openFileDialog.FileName));
+            // Render the DrawingVisual to a RenderTargetBitmap
+            RenderTargetBitmap renderBitmap = new RenderTargetBitmap(
+               newWidth, newHeight, source.DpiX, source.DpiY, PixelFormats.Pbgra32);
 
-        //        // Rotate the image by 45 degrees
-        //        WritableBitmap rotatedBitmap = RotateBitmap(bitmapImage, 45);
+            renderBitmap.Render(visual);
 
-        //        // Save the rotated image to a file (optional)
-        //        SaveRotatedImage(rotatedBitmap, "rotated_image.png");
-        //    }
-        //}
+            WriteableBitmap renderWriteableBitmap = new WriteableBitmap(renderBitmap);
+            // Convert the RenderTargetBitmap to a WritableBitmap
+            using (outputBitmap.GetBitmapContext())
+            {
+                outputBitmap.Blit(new Rect(x, y, newWidth, newHeight), renderWriteableBitmap, new Rect(0, 0, newWidth, newHeight), WriteableBitmapExtensions.BlendMode.Alpha);
+            }
 
-        //private static void SaveRotatedImage(WritableBitmap bitmap, string filePath)
-        //{
-        //    using (var fileStream = new System.IO.FileStream(filePath, System.IO.FileMode.Create))
-        //    {
-        //        PngBitmapEncoder encoder = new PngBitmapEncoder();
-        //        encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        //        encoder.Save(fileStream);
-        //    }
-        //}
+        }
     }
 }
