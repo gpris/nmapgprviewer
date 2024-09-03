@@ -1,7 +1,7 @@
 # nmapgprviewer
 Naver static map and WPF GPR layer viewer
 
-![실행화면](https://github.com/user-attachments/assets/364bd4a8-949d-4355-b2bf-a9a7ef823037)
+![실행화면](https://github.com/user-attachments/assets/c8a3db7e-8ccb-4a66-ba05-92d91ff0cea5)
 
 Simple objectives are : 
 1. to show Naver static map on WPF.
