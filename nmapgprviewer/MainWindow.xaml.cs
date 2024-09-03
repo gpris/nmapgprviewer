@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 
+
 namespace nmapgprviewer
 {
     public partial class MainWindow : Window
@@ -77,7 +78,7 @@ namespace nmapgprviewer
             double testLat = 37.564885;
             double testLng = 126.978398;
 
-            int zoom = 16;
+            int zoom = 18;
             int width = 1024;
             int height = 768;
 
@@ -133,10 +134,11 @@ namespace nmapgprviewer
                         //DrawLine(writeableBitmap, x1, y1, x2, y2, lineColor);
                         //DrawLineLatLng(writeableBitmap, lat0, lng0, lat1, lng1, lineColor);
 
-                        WriteableBitmap loadedBitmap = DrawRoadBitmap( n1pos[0], n1pos[1], n2pos[0], n2pos[1]);
+                        WriteableBitmap loadedBitmap = DrawZoomRoadBitmap( n1pos[0], n1pos[1], zoom);
+                        //WriteableBitmap loadedBitmap = DrawRoadBitmap(n1pos[0], n1pos[1], n2pos[0], n2pos[1]);
 
                         DrawRotateBitmap(writeableBitmap,loadedBitmap, angle2, x1, y1);
-                        DrawThickLine(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1], lineColor, thickness);
+                        //DrawThickLine(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1], lineColor, thickness);
 
 
                         MapImage.Source = writeableBitmap;
@@ -241,6 +243,32 @@ namespace nmapgprviewer
             return resultbitmap;
         }
 
+        private WriteableBitmap DrawZoomRoadBitmap(int x1, int y1, int zoom)
+        {
+            BitmapImage bitmapImage = new BitmapImage(new Uri("..\\..\\pmsdata\\s000010000.jpg", UriKind.RelativeOrAbsolute));
+
+            //int width = Math.Abs(x2 - x1);
+            //int height = Math.Abs(y2 - y1);
+            int zoomWidth = 1;
+            int zoomHeight = 2 ;
+
+            int width = bitmapImage.PixelWidth;
+            int height = bitmapImage.PixelHeight;
+
+            if (zoom > 13)
+            {
+                float ratio = (float)(Math.Pow(2, zoom-16) / 1000.0f);
+
+                zoomWidth = (int)(width * ratio);
+                zoomHeight = (int)(height * ratio) ;
+            }
+
+            WriteableBitmap tempbitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
+            CopyBitmapImageToWriteableBitmap(bitmapImage, tempbitmap, 0, 0, width, height);
+            WriteableBitmap resultbitmap = tempbitmap.Resize(zoomWidth, zoomHeight, WriteableBitmapExtensions.Interpolation.Bilinear);
+            return resultbitmap;
+        }
+
         private void DrawThickPixel(int[] pixels, int width, int height, int x, int y, Color color, int thickness)
         {
             int halfThickness = thickness / 2;
@@ -292,7 +320,7 @@ namespace nmapgprviewer
             return writableBitmap;
         }
 
-        public void  DrawRotateBitmap(WriteableBitmap outputBitmap, BitmapSource source, double angle, int x, int y)
+        public void DrawRotateBitmap(WriteableBitmap outputBitmap, BitmapSource source, double angle, int x, int y)
         {
             double radians = angle * Math.PI / 180;
             double cos = Math.Abs(Math.Cos(radians));
