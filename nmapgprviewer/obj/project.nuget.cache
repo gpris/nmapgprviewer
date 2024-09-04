@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "FTuJvuKXKZPAOa8PDIUJ/Ruu6JXrNJeIJOajqU0UoEVAtvMPFVsnVeBHV4rkPfTDqRdJJHvajIYvi1mFzVqFaw==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Sanghyun\\source\\repos\\nmapgprviewer\\nmapgprviewer\\nmapgprviewer.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Sanghyun\\.nuget\\packages\\writeablebitmapex\\1.6.8\\writeablebitmapex.1.6.8.nupkg.sha512"
+  ],
+  "logs": []
+}

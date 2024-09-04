@@ -69,14 +69,15 @@ namespace nmapgprviewer
 
         private async Task LoadMapAsync()
         {
-            double latitude = 37.5665; // 예시 위도
-            double longitude = 126.9780; // 예시 경도
-            // (37.5599687961511, 126.967013671875), (37.5730312038489, 126.988986328125) dlat:0.0065, dlng:0.0109
-            // (37.5632343980755, 126.972506835937), (37.5697656019245, 126.983493164062) dlat:0.0032, dlng:0.0054
-            //latitude +=  (1.0 * 0.0065); // was latMin 
-            //longitude -= (1.0 * 0.01098); // was lngMin 
-            double testLat = 37.564885;
-            double testLng = 126.978398;
+            //double latitude = 37.5665; // 예시 위도
+            //double longitude = 126.9780; // 예시 경도
+            //double testLat = 37.564885;
+            //double testLng = 126.978398;
+
+            double latitude = 37.331788; //이성 입구
+            double longitude = 126.713350; // 이성 입구
+            double testLat = 37.332732; // 동화산업사거리
+            double testLng = 126.714275; //동화산업사거리
 
             int zoom = 18;
             int width = 1024;
@@ -129,11 +130,13 @@ namespace nmapgprviewer
                         int thickness = 4;
 
                         // 선 그리기
+                        //DrawLine(writeableBitmap, x1, y1, x2, y2, lineColor);
 
                         // 선 그리기
-                        //DrawLine(writeableBitmap, x1, y1, x2, y2, lineColor);
+
                         //DrawLineLatLng(writeableBitmap, lat0, lng0, lat1, lng1, lineColor);
 
+                        // 
                         WriteableBitmap loadedBitmap = DrawZoomRoadBitmap( n1pos[0], n1pos[1], zoom);
                         //WriteableBitmap loadedBitmap = DrawRoadBitmap(n1pos[0], n1pos[1], n2pos[0], n2pos[1]);
 
