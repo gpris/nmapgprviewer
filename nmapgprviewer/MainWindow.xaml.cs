@@ -7,10 +7,40 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
+using System.Windows.Forms;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Globalization;
+using CsvHelper;
 
 
 namespace nmapgprviewer
 {
+    class insGeoLocation
+    {
+        public double distance;
+        public double speed;
+        public double latitude;
+        public double longitude;
+        public double altitude;
+        public double roll;
+        public double pitch;
+        public double yaw;
+        public double Gyro_X;
+        public double Gyro_Y;
+        public double Gyro_Z;
+        public double Accel_X;
+        public double Accel_Y;
+        public double Accel_Z;
+        public double Mag_X;
+        public double Mag_Y;
+        public double Mag_Z;
+        public int TriggerInfo;
+        public int TriggerPulseCount;
+    }
+
     public partial class MainWindow : Window
     {
         private static readonly string clientId = "sm8oqxebg0"; // 네이버 클라이언트 ID
@@ -24,6 +54,15 @@ namespace nmapgprviewer
         public double lngMax = 0.0; // 최대 경도
         public double shiftDegreesEW = 0.0;
         public double shiftDegreesNS = 0.0;
+
+        public String projectPath ="";
+        public String projectFolder ="";
+        public String projectName = "" ;
+
+        public String insPath = "";
+        public String roadFolder = "";
+        public String[] roadImagePaths;
+        public double[][] insData = new double[1000][2]; // 1000개의 데이터를 저장할 수 있는 2차원 배열 [1000][17
 
         public double toRadians(double degree) => degree * Math.PI / 180.0; // degree를 radian으로 변환
 
@@ -148,16 +187,101 @@ namespace nmapgprviewer
                     }
                     double dlat = latMax - latitude;
                     double dlng = lngMax - longitude;
-                    BoundLatLng.Text = $"({latMin}, {lngMin}), ({latMax}, {lngMax}) dlat:{dlat}, dlng:{dlng}, posx:{pos[0]}, posy={pos[1]}";
+                    //BoundLatLng.Text = $"({latMin}, {lngMin}), ({latMax}, {lngMax}) dlat:{dlat}, dlng:{dlng}, posx:{pos[0]}, posy={pos[1]}";
                     //BoundLatLng.Text = $"({boundBox[0]}, {boundBox[1]}), ({boundBox[2]}, {boundBox[3]}) dlat:
                     //{dlat}, dlng:{dlng}";
 
                 }
                 else
                 {
-                    MessageBox.Show($"Error: {response.StatusCode}");
+                    System.Windows.MessageBox.Show($"Error: {response.StatusCode}");
                 }
             }
+        }
+
+        private void SelectFolderButton_Click(object sender, RoutedEventArgs e)
+        {
+            using (var dialog = new FolderBrowserDialog())
+            {
+                dialog.Description = "Select a folder";
+                dialog.ShowNewFolderButton = true;
+
+                DialogResult result = dialog.ShowDialog();
+                
+                if (result == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
+                {
+                    //SelectedFolderPathTextBlock.Text = "Selected Folder: " + dialog.SelectedPath;
+                    // Processing Project name from path ,
+                    // make fill out project relative folders name ,
+                    // get filelist from INS and road image 
+                    //System.IO.FileInfo fileInfo = new System.IO.FileInfo(dialog.SelectedPath);
+                    //string projectDirNames = fileInfo.DirectoryName;
+                    projectPath = dialog.SelectedPath;
+                    string[] arr1 = projectPath.Split('\\');
+                    int arr1len = arr1.Length;
+                    projectName = arr1[arr1len - 1];
+                    projectFolder = projectPath.Remove(projectPath.Length - projectName.Length); // Folder should ends with '\'
+                    insPath = projectPath + "\\" + projectName + "_INS\\Spatial\\" + projectName+ "_INS.csv";
+                    roadFolder = projectPath + "\\" + projectName + "_표면결함\\";
+                    GetRoadImageList(roadFolder);
+                    ParseINSData(insPath);
+                }
+            }
+        }
+
+        private void ParseINSData(string insPath)
+        {
+            try
+            {
+                using (var reader = new StreamReader(insPath))
+                    using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                    {
+                    double[] tempLatLng = new double[2]; 
+                        var records = csv.GetRecords<insGeoLocation>();
+                        int prevDistance = 0;
+                    List<double>
+                        foreach (var record in records)
+                        {
+                            if(prevDistance != (int)(record.distance)%10)
+                            {
+                                prevDistance = (int)(record.distance) % 10);
+                                tempLatLng[0] = record.latitude;
+                                tempLatLng[1] = record.longitude;
+
+                            }
+                        
+                        //Console.WriteLine(record.latitude);
+                            //Console.WriteLine(record.longitude);
+                            //Console.WriteLine(record.distance);
+                        }
+                    }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void GetRoadImageList(string roadFolder)
+        {
+            FileInfo[] fileInfo;
+            DirectoryInfo directoryInfo = new DirectoryInfo(roadFolder);
+            DirectoryInfo[] subdirinfo = directoryInfo.GetDirectories();
+
+            List<FileInfo> roadImages = new List<FileInfo>();
+            foreach (DirectoryInfo subdir in subdirinfo)
+            {
+                roadImages.AddRange(subdir.GetFiles("*.jpg"));
+            }
+
+            fileInfo = roadImages.ToArray();
+
+            List<string> roadImagePathList = new List<string>();
+            foreach (FileInfo file in fileInfo)
+            {
+                roadImagePathList.Add(file.FullName);
+            }
+            roadImagePaths = roadImagePathList.ToArray();
         }
 
         private void DrawLine(WriteableBitmap bitmap, int x1, int y1, int x2, int y2, Color color)
