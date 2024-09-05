@@ -14,31 +14,68 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Globalization;
 using CsvHelper;
+using CsvHelper.Configuration.Attributes;
 
 
 namespace nmapgprviewer
 {
     class insGeoLocation
     {
-        public double distance;
-        public double speed;
-        public double latitude;
-        public double longitude;
-        public double altitude;
-        public double roll;
-        public double pitch;
-        public double yaw;
-        public double Gyro_X;
-        public double Gyro_Y;
-        public double Gyro_Z;
-        public double Accel_X;
-        public double Accel_Y;
-        public double Accel_Z;
-        public double Mag_X;
-        public double Mag_Y;
-        public double Mag_Z;
-        public int TriggerInfo;
-        public int TriggerPulseCount;
+        //Distance[m],Speed[m/s],Latitude[��],Longitude[��],Altitude[m],Roll[��],Pitch[��],Yaw[��],Gyro_X[dps],Gyro_Y[dps],Gyro_Z[dps],Acc_X[m/s2],Acc_Y[m/s2],Acc_Z[m/s2],Mag_X[mG],Mag_Y[mG],Mag_Z[mG],TriggerInfo,TriggerPulseCount
+        [Name("Distance[m]")]
+        public double distance { get; set; }
+
+        [Name("Speed[m/s]")]
+        public double speed { get; set; }
+
+        [Name("Latitude[deg]")]
+        public double latitude { get; set; }
+
+        [Name("Longitude[deg]")]
+        public double longitude { get; set; }
+
+        [Name("Altitude[m]")]
+        public double altitude { get; set; }
+
+        [Name("Roll[deg]")]
+        public double roll { get; set; }
+
+        [Name("Pitch[deg]")]
+        public double pitch { get; set; }
+
+        [Name("Yaw[deg]")]
+        public double yaw { get; set; }
+
+        [Name("Gyro_X[dps]")]
+        public double Gyro_X { get; set; }
+
+        [Name("Gyro_Y[dps]")]
+        public double Gyro_Y { get; set; }
+
+        [Name("Gyro_Z[dps]")]
+        public double Gyro_Z { get; set; }
+
+        [Name("Acc_X[m/s2]")]
+        public double Accel_X { get; set; }
+
+        [Name("Acc_Y[m/s2]")]
+        public double Accel_Y { get; set; }
+
+        [Name("Acc_Z[m/s2]")]
+        public double Accel_Z { get; set; }
+
+        [Name("Mag_X[mG]")]
+        public double Mag_X { get; set; }
+
+        [Name("Mag_Y[mG]")]
+        public double Mag_Y { get; set; }
+
+        [Name("Mag_Z[mG]")]
+        public double Mag_Z { get; set; }
+
+        public int TriggerInfo { get; set; }
+
+        public int TriggerPulseCount { get; set; }
     }
 
     public partial class MainWindow : Window
@@ -55,25 +92,32 @@ namespace nmapgprviewer
         public double shiftDegreesEW = 0.0;
         public double shiftDegreesNS = 0.0;
 
-        public String projectPath ="";
-        public String projectFolder ="";
-        public String projectName = "" ;
+        public String projectPath = "";
+        public String projectFolder = "";
+        public String projectName = "";
 
         public String insPath = "";
         public String roadFolder = "";
         public String[] roadImagePaths;
-        public double[][] insData = new double[1000][2]; // 1000개의 데이터를 저장할 수 있는 2차원 배열 [1000][17
+        public double[,] insData = new double[1000, 2];
+        public int insDataIndex = 0;
+        public double[] centerLatLng = { 37.331788, 126.713350 };
+        public int zoom = 18;
+        public double pathlatMin = 90.0; // 최소 위도
+        public double pathlatMax = 0.0; // 최대 위도
+        public double pathlngMin = 180.0; // 최소 경도
+        public double pathlngMax = 0.0; // 최대 경도
 
         public double toRadians(double degree) => degree * Math.PI / 180.0; // degree를 radian으로 변환
 
         public double toDegrees(double radian) => radian * 180.0 / Math.PI; // radian을 degree로 변환
 
-        public double [] latLngToBounds(double lat, double lng, int zoom, int width, int height) 
+        public double[] latLngToBounds(double lat, double lng, int zoom, int width, int height)
         {
-            double metersPerPixelEW = EARTH_CIR_METERS / Math.Pow(2, zoom+9); // 가로 미터당 픽셀 since zoom level is 0 to 20 21 levels
-            double metersPerPixelNS = EARTH_CIR_METERS / Math.Pow(2, zoom+9) * Math.Cos(toRadians(lat)); ; // 세로 미터당 픽셀
+            double metersPerPixelEW = EARTH_CIR_METERS / Math.Pow(2, zoom + 9); // 가로 미터당 픽셀 since zoom level is 0 to 20 21 levels
+            double metersPerPixelNS = EARTH_CIR_METERS / Math.Pow(2, zoom + 9) * Math.Cos(toRadians(lat)); ; // 세로 미터당 픽셀
 
-            double shiftMetersEW = width/ 2.0 * metersPerPixelEW; // 가로로 이동한 거리
+            double shiftMetersEW = width / 2.0 * metersPerPixelEW; // 가로로 이동한 거리
             double shiftMetersNS = height / 2.0 * metersPerPixelNS; // 세로로 이동한 거리
 
             shiftDegreesEW = shiftMetersEW * degreePerMeter; // 가로로 이동한 각도
@@ -84,7 +128,7 @@ namespace nmapgprviewer
             latMax = lat + shiftDegreesNS;
             lngMax = lng + shiftDegreesEW;
 
-            double [] bounds = {latMin, lngMin, latMax, lngMax}; // NOT USED
+            double[] bounds = { latMin, lngMin, latMax, lngMax }; // NOT USED
             return bounds;
         }
 
@@ -103,7 +147,7 @@ namespace nmapgprviewer
         public MainWindow()
         {
             InitializeComponent();
-            LoadMapAsync();
+            _ = LoadMapAsync();
         }
 
         private async Task LoadMapAsync()
@@ -113,29 +157,24 @@ namespace nmapgprviewer
             //double testLat = 37.564885;
             //double testLng = 126.978398;
 
-            double latitude = 37.331788; //이성 입구
-            double longitude = 126.713350; // 이성 입구
-            double testLat = 37.332732; // 동화산업사거리
-            double testLng = 126.714275; //동화산업사거리
-
-            int zoom = 18;
             int width = 1024;
             int height = 768;
 
             // 마커 파라미터 추가
             //string markers = $"type:t|size:mid|pos:{longitude} {latitude}";
-            string markers = $"type:t|size:mid|pos:{testLng} {testLat}";
+            //string markers = $"type:t|size:mid|pos:{testLng} {testLat}";
 
-            string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={longitude},{latitude}&level={zoom}&w={width}&h={height}&markers={markers}";
+            //string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={longitude},{latitude}&level={zoom}&w={width}&h={height}&markers={markers}"; // with Marker
+            string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={centerLatLng[1]},{centerLatLng[0]}&level={zoom}&w={width}&h={height}";
 
             using (HttpClient client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("X-NCP-APIGW-API-KEY-ID", clientId);
                 client.DefaultRequestHeaders.Add("X-NCP-APIGW-API-KEY", clientSecret);
-                double[] boundBox = latLngToBounds(latitude, longitude, zoom, width, height);
-                int[] pos = latLngToPos(testLat, testLng, width, height);
+                double[] boundBox = latLngToBounds(centerLatLng[0], centerLatLng[1], zoom, width, height);
+                //int[] pos = latLngToPos(testLat, testLng, width, height);
                 HttpResponseMessage response = await client.GetAsync(url);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();
@@ -149,44 +188,134 @@ namespace nmapgprviewer
 
                         WriteableBitmap writeableBitmap = new WriteableBitmap(bitmap);
 
-                        // 선의 시작점과 끝점 설정
-                        int x1 = 50, y1 = 50;
-                        int x2 = 200, y2 = 200;
-                        int[] n1pos  = latLngToPos(latitude, longitude, width, height); // City Hall
-                        int[] n2pos = latLngToPos(testLat, testLng, width, height); // Hotel
+                        //int[] n1pos  = latLngToPos(latitude, longitude, width, height); // City Hall
+                        //int[] n2pos = latLngToPos(testLat, testLng, width, height); // Hotel
 
-                        x1 = n1pos[0];
-                        y1 = n1pos[1];
-                        x2 = n2pos[0];
-                        y2 = n2pos[1];  
+                        //x1 = n1pos[0];
+                        //y1 = n1pos[1];
+                        //x2 = n2pos[0];
+                        //y2 = n2pos[1];  
 
-                        double radian2 = Math.Atan2(y2 - y1, x2 - x1);
+                        //double radian2 = Math.Atan2(y2 - y1, x2 - x1);
 
-                        double angle2 = 90+(radian2 * 180 / Math.PI );
-                        // 선 색상 설정
-                        Color lineColor = Colors.Red;
-                        // 선 두께 설정
-                        int thickness = 4;
+                        //double angle2 = 90+(radian2 * 180 / Math.PI );
 
-                        // 선 그리기
-                        //DrawLine(writeableBitmap, x1, y1, x2, y2, lineColor);
+                        //WriteableBitmap loadedBitmap = DrawZoomRoadBitmap( n1pos[0], n1pos[1], zoom);
+                        ////WriteableBitmap loadedBitmap = DrawRoadBitmap(n1pos[0], n1pos[1], n2pos[0], n2pos[1]);
 
-                        // 선 그리기
-
-                        //DrawLineLatLng(writeableBitmap, lat0, lng0, lat1, lng1, lineColor);
-
-                        // 
-                        WriteableBitmap loadedBitmap = DrawZoomRoadBitmap( n1pos[0], n1pos[1], zoom);
-                        //WriteableBitmap loadedBitmap = DrawRoadBitmap(n1pos[0], n1pos[1], n2pos[0], n2pos[1]);
-
-                        DrawRotateBitmap(writeableBitmap,loadedBitmap, angle2, x1, y1);
+                        //DrawRotateBitmap(writeableBitmap,loadedBitmap, angle2, x1, y1);
                         //DrawThickLine(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1], lineColor, thickness);
 
 
                         MapImage.Source = writeableBitmap;
                     }
-                    double dlat = latMax - latitude;
-                    double dlng = lngMax - longitude;
+                    //double dlat = latMax - latitude;
+                    //double dlng = lngMax - longitude;
+                    //BoundLatLng.Text = $"({latMin}, {lngMin}), ({latMax}, {lngMax}) dlat:{dlat}, dlng:{dlng}, posx:{pos[0]}, posy={pos[1]}";
+                    //BoundLatLng.Text = $"({boundBox[0]}, {boundBox[1]}), ({boundBox[2]}, {boundBox[3]}) dlat:
+                    //{dlat}, dlng:{dlng}";
+
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show($"Error: {response.StatusCode}");
+                }
+            }
+        }
+
+        private async Task LoadMapAsync2()
+        {
+            int width = 1024;
+            int height = 768;
+            // 마커 파라미터 추가
+            //string markers = $"type:t|size:mid|pos:{centerLatLng[1]} {centerLatLng[0]}";
+            if (pathlatMax > latMax || pathlatMin < latMin || pathlngMax > lngMax || pathlngMin < lngMin)
+            {
+                if(zoom -1 >= 0)
+                    zoom = zoom-1;
+                else zoom = 0;
+            }
+
+            //string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={longitude},{latitude}&level={zoom}&w={width}&h={height}&markers={markers}"; // with Marker
+            string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={centerLatLng[1]},{centerLatLng[0]}&level={zoom}&w={width}&h={height}";
+
+            using (HttpClient client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("X-NCP-APIGW-API-KEY-ID", clientId);
+                client.DefaultRequestHeaders.Add("X-NCP-APIGW-API-KEY", clientSecret);
+                double[] boundBox = latLngToBounds(centerLatLng[0], centerLatLng[1], zoom, width, height);
+
+                HttpResponseMessage response = await client.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();
+                    using (var stream = new System.IO.MemoryStream(imageBytes))
+                    {
+                        var mbitmap = new BitmapImage();
+                        mbitmap.BeginInit();
+                        mbitmap.StreamSource = stream;
+                        mbitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        mbitmap.EndInit();
+
+                        WriteableBitmap mapBitmap = new WriteableBitmap(mbitmap); // Map Image
+
+                        WriteableBitmap roadBitmapLayer = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null); // Road Image Layer 
+                        int roadimageindex = 0;
+                        foreach ( string roadImgPath in roadImagePaths)
+                        {
+                            BitmapImage roadBitmapImage = new BitmapImage(new Uri(roadImgPath, UriKind.RelativeOrAbsolute));
+                            WriteableBitmap roadBitmap = new WriteableBitmap(roadBitmapImage);
+                            CopyBitmapImageToWriteableBitmap(roadBitmapImage, roadBitmap, 0, 0, roadBitmap.PixelWidth, roadBitmap.PixelHeight);
+                            int zoomWidth = 1;
+                            int zoomHeight = 3;
+
+                            int roadwidth = roadBitmap.PixelWidth;
+                            int roadheight = roadBitmap.PixelHeight;
+                            int[] orgxy = { 0, 0 };
+                            int[] destxy = { 0, 0 };
+                            if (zoom > 13)
+                            {
+                                float ratio = (float)(Math.Pow(2, zoom - 16) / 1000.0f);
+
+                                zoomWidth = (int)(roadwidth * ratio);
+                                zoomHeight =(int)(roadheight * ratio);
+                            }
+
+                            roadBitmap.Resize(zoomWidth, zoomHeight, WriteableBitmapExtensions.Interpolation.Bilinear);
+                            if (roadBitmap != null)
+                            {
+                                roadBitmap = null;
+                                GC.Collect();
+                                GC.WaitForPendingFinalizers();
+                            }
+
+                            orgxy = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
+                            if (insData.Length > roadimageindex + 1)
+                                destxy = latLngToPos(insData[roadimageindex + 1, 0], insData[roadimageindex + 1, 1], width, height);
+                            else
+                                destxy = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
+
+                            double radian2 = Math.Atan2(destxy[1] - orgxy[1], destxy[0] - orgxy[0]);
+
+                            double angle2 = 90+(radian2 * 180 / Math.PI );
+                            DrawRotateBitmap(roadBitmapLayer, roadBitmap, angle2, orgxy[0], orgxy[1]);
+                            if (roadBitmap != null)
+                            {
+                                roadBitmap = null;
+                                GC.Collect();
+                                GC.WaitForPendingFinalizers();
+                            }
+                            roadimageindex++;
+                            MapImage.Source = roadBitmapLayer; // Road Image Layer
+                            
+                        }
+
+                        MapImage.Source = roadBitmapLayer; // Road Image Layer
+                        //MapImage.Source = mapBitmap; // Map Image
+                    }
+                    //double dlat = latMax - latitude;
+                    //double dlng = lngMax - longitude;
                     //BoundLatLng.Text = $"({latMin}, {lngMin}), ({latMax}, {lngMax}) dlat:{dlat}, dlng:{dlng}, posx:{pos[0]}, posy={pos[1]}";
                     //BoundLatLng.Text = $"({boundBox[0]}, {boundBox[1]}), ({boundBox[2]}, {boundBox[3]}) dlat:
                     //{dlat}, dlng:{dlng}";
@@ -225,6 +354,8 @@ namespace nmapgprviewer
                     roadFolder = projectPath + "\\" + projectName + "_표면결함\\";
                     GetRoadImageList(roadFolder);
                     ParseINSData(insPath);
+
+                    _ = LoadMapAsync2();
                 }
             }
         }
@@ -234,27 +365,62 @@ namespace nmapgprviewer
             try
             {
                 using (var reader = new StreamReader(insPath))
-                    using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
-                    {
-                    double[] tempLatLng = new double[2]; 
-                        var records = csv.GetRecords<insGeoLocation>();
-                        int prevDistance = 0;
-                    List<double>
-                        foreach (var record in records)
-                        {
-                            if(prevDistance != (int)(record.distance)%10)
-                            {
-                                prevDistance = (int)(record.distance) % 10);
-                                tempLatLng[0] = record.latitude;
-                                tempLatLng[1] = record.longitude;
+                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                {
+                    //double[] tempLatLng = new double[2]; 
+                    int fieldCount = csv.ColumnCount;
+                    //string[] headers = csv.get().ToList().ToList();
+                    double subtotalLat = 0.0;
+                    double subtotalLng = 0.0;
+                    
+                    double tminLat = 43.0;
+                    double tmaxLat = 33.0;
+                    double tminLng = 132.0;
+                    double tmaxLng = 124.0;
 
-                            }
-                        
-                        //Console.WriteLine(record.latitude);
-                            //Console.WriteLine(record.longitude);
-                            //Console.WriteLine(record.distance);
+                    var records = csv.GetRecords<insGeoLocation>().ToList();
+                    insDataIndex = 0;
+                    List<double[]> tempLatLngs = new List<double[]>();
+
+                    foreach (var record in records)
+                    {
+                        if(((int)(record.distance / 10))==0) // Distance is 0.0m to 9.9m
+                        {
+                            insData[0, 0] = records[0].latitude;
+                            insData[0, 1] = records[0].longitude;
+                            if (records[0].latitude < tminLat) tminLat = records[0].latitude;
+                            if (records[0].latitude > tmaxLat) tmaxLat = records[0].latitude;
+                            if (records[0].longitude < tminLng) tminLng = records[0].longitude;
+                            if (records[0].longitude > tmaxLng) tmaxLng = records[0].longitude;
                         }
+ 
+                        if (insDataIndex != ((int)(record.distance / 10))) // in Case of Distance value just changed to next value (every 10m)
+                        {
+                            insDataIndex = (int)(record.distance/10);
+                            insData[insDataIndex , 0] = record.latitude;
+                            insData[insDataIndex , 1] = record.longitude;
+                            tempLatLngs.Add(new double[] { record.latitude, record.longitude });
+                            subtotalLat += record.latitude;
+                            subtotalLng += record.longitude;
+                            if(record.latitude < tminLat) tminLat = record.latitude;
+                            if (record.latitude > tmaxLat) tmaxLat = record.latitude;
+                            if (record.longitude < tminLng) tminLng = record.longitude;
+                            if (record.longitude > tmaxLng) tmaxLng = record.longitude;
+                        }
+
                     }
+                    subtotalLat += records[0].latitude;
+                    subtotalLng += records[0].longitude;
+                    centerLatLng[0] = subtotalLat / (insDataIndex + 1);
+                    centerLatLng[1] = subtotalLng / (insDataIndex + 1);
+                    pathlatMax = tmaxLat;
+                    pathlatMin = tminLat;
+                    pathlngMax = tmaxLng;
+                    pathlngMin = tminLng;
+                    SelectedFolderPathTextBlock.Text = "insIndex: " + insDataIndex + "with center:(" + centerLatLng[0] + "," + centerLatLng[1] + ")";
+                    
+                }
+
             }
             catch (Exception ex)
             {
