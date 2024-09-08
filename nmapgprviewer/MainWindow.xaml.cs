@@ -15,6 +15,8 @@ using System.Reflection;
 using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration.Attributes;
+using System.Windows.Input;
+using System.Windows.Media.Media3D;
 
 
 namespace nmapgprviewer
@@ -108,6 +110,14 @@ namespace nmapgprviewer
         public double pathlngMin = 180.0; // 최소 경도
         public double pathlngMax = 0.0; // 최대 경도
 
+        private Point _start;
+        private Point _origin;
+
+        private int width = 1024 * 2;
+        private int height = 768 * 2;
+
+        public WriteableBitmap mapBitmap;
+
         public double toRadians(double degree) => degree * Math.PI / 180.0; // degree를 radian으로 변환
 
         public double toDegrees(double radian) => radian * 180.0 / Math.PI; // radian을 degree로 변환
@@ -148,89 +158,88 @@ namespace nmapgprviewer
         {
             InitializeComponent();
             //_ = LoadMapAsync();
+            MapImage.MouseWheel += MapImage_MouseWheel;
+            MapImage.MouseLeftButtonDown += MapImage_MouseLeftButtonDown;
+            MapImage.MouseMove += MapImage_MouseMove;
+            MapImage.MouseLeftButtonUp += MapImage_MouseLeftButtonUp;
         }
 
-        private async Task LoadMapAsync()
-        {
-            //double latitude = 37.5665; // 예시 위도
-            //double longitude = 126.9780; // 예시 경도
-            double testLat = 37.331974;
-            double testLng = 126.713529;
+        //private async Task LoadMapAsync()
+        //{
+        //    //double latitude = 37.5665; // 예시 위도
+        //    //double longitude = 126.9780; // 예시 경도
+        //    double testLat = 37.331974;
+        //    double testLng = 126.713529;
 
-            int width = 1024;
-            int height = 768;
+        //    int width = 1024;
+        //    int height = 768;
 
-            int x1, y1, x2, y2 = 0;
+        //    int x1, y1, x2, y2 = 0;
 
-            Color lineColor = Colors.Red;
-            int thickness = 5;
+        //    Color lineColor = Colors.Red;
+        //    int thickness = 5;
 
-            // 마커 파라미터 추가
-            //string markers = $"type:t|size:mid|pos:{longitude} {latitude}";
-            //string markers = $"type:t|size:mid|pos:{testLng} {testLat}";
+        //    // 마커 파라미터 추가
+        //    //string markers = $"type:t|size:mid|pos:{longitude} {latitude}";
+        //    //string markers = $"type:t|size:mid|pos:{testLng} {testLat}";
 
-            //string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={longitude},{latitude}&level={zoom}&w={width}&h={height}&markers={markers}"; // with Marker
-            string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={centerLatLng[1]},{centerLatLng[0]}&level={zoom}&w={width}&h={height}";
+        //    //string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={longitude},{latitude}&level={zoom}&w={width}&h={height}&markers={markers}"; // with Marker
+        //    string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={centerLatLng[1]},{centerLatLng[0]}&level={zoom}&w={width}&h={height}";
 
-            using (HttpClient client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Add("X-NCP-APIGW-API-KEY-ID", clientId);
-                client.DefaultRequestHeaders.Add("X-NCP-APIGW-API-KEY", clientSecret);
-                double[] boundBox = latLngToBounds(centerLatLng[0], centerLatLng[1], zoom, width, height);
-                //int[] pos = latLngToPos(testLat, testLng, width, height);
-                HttpResponseMessage response = await client.GetAsync(url);
+        //    using (HttpClient client = new HttpClient())
+        //    {
+        //        client.DefaultRequestHeaders.Add("X-NCP-APIGW-API-KEY-ID", clientId);
+        //        client.DefaultRequestHeaders.Add("X-NCP-APIGW-API-KEY", clientSecret);
+        //        double[] boundBox = latLngToBounds(centerLatLng[0], centerLatLng[1], zoom, width, height);
+        //        //int[] pos = latLngToPos(testLat, testLng, width, height);
+        //        HttpResponseMessage response = await client.GetAsync(url);
 
-                if (response.IsSuccessStatusCode)
-                {
-                    byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();
-                    using (var stream = new System.IO.MemoryStream(imageBytes))
-                    {
-                        var bitmap = new BitmapImage();
-                        bitmap.BeginInit();
-                        bitmap.StreamSource = stream;
-                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                        bitmap.EndInit();
+        //        if (response.IsSuccessStatusCode)
+        //        {
+        //            byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();
+        //            using (var stream = new System.IO.MemoryStream(imageBytes))
+        //            {
+        //                var bitmap = new BitmapImage();
+        //                bitmap.BeginInit();
+        //                bitmap.StreamSource = stream;
+        //                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        //                bitmap.EndInit();
 
-                        WriteableBitmap writeableBitmap = new WriteableBitmap(bitmap);
+        //                WriteableBitmap writeableBitmap = new WriteableBitmap(bitmap);
 
-                        int[] n1pos = latLngToPos(centerLatLng[0], centerLatLng[1], width, height); // City Hall
-                        int[] n2pos = latLngToPos(testLat, testLng, width, height); // Hotel
+        //                int[] n1pos = latLngToPos(centerLatLng[0], centerLatLng[1], width, height); // City Hall
+        //                int[] n2pos = latLngToPos(testLat, testLng, width, height); // Hotel
 
-                        x1 = n1pos[0];
-                        y1 = n1pos[1];
-                        x2 = n2pos[0];
-                        y2 = n2pos[1];
+        //                x1 = n1pos[0];
+        //                y1 = n1pos[1];
+        //                x2 = n2pos[0];
+        //                y2 = n2pos[1];
 
-                        double radian2 = Math.Atan2(y2 - y1, x2 - x1);
+        //                double radian2 = Math.Atan2(y2 - y1, x2 - x1);
 
-                        double angle2 = 90 + (radian2 * 180 / Math.PI);
+        //                double angle2 = 90 + (radian2 * 180 / Math.PI);
 
-                        WriteableBitmap loadedBitmap = DrawZoomRoadBitmapfilename( n1pos[0], n1pos[1], zoom, "..\\..\\pmsdata\\s000000000.jpg");
-                        //WriteableBitmap loadedBitmap2 = DrawZoomRoadBitmapfilename( n1pos[0], n1pos[1], zoom, "C:\\Users\\Sanghyun\\Downloads\\희망공원로_2(21)_상_1\\희망공원로_2(21)_상_1_표면결함\\0\\희망공원로_2(21)_상_1_s000010000.jpg");
-                        ////WriteableBitmap loadedBitmap = DrawRoadBitmap(n1pos[0], n1pos[1], n2pos[0], n2pos[1]);
+        //                WriteableBitmap loadedBitmap = DrawZoomRoadBitmapfilename( n1pos[0], n1pos[1], zoom, "..\\..\\pmsdata\\s000000000.jpg");
+        //                //WriteableBitmap loadedBitmap2 = DrawZoomRoadBitmapfilename( n1pos[0], n1pos[1], zoom, "C:\\Users\\Sanghyun\\Downloads\\희망공원로_2(21)_상_1\\희망공원로_2(21)_상_1_표면결함\\0\\희망공원로_2(21)_상_1_s000010000.jpg");
+        //                ////WriteableBitmap loadedBitmap = DrawRoadBitmap(n1pos[0], n1pos[1], n2pos[0], n2pos[1]);
 
-                        DrawRotateBitmap(writeableBitmap,loadedBitmap, angle2, x1, y1);
-                        //DrawRotateBitmap(writeableBitmap, loadedBitmap2, angle2, x2, y2);
-                        DrawThickLine(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1], lineColor, thickness);
+        //                DrawRotateBitmap(writeableBitmap,loadedBitmap, angle2, x1, y1);
+        //                //DrawRotateBitmap(writeableBitmap, loadedBitmap2, angle2, x2, y2);
+        //                DrawThickLine(writeableBitmap, n1pos[0], n1pos[1], n2pos[0], n2pos[1], lineColor, thickness);
 
 
-                        MapImage.Source = writeableBitmap;
-                    }
-                }
-                else
-                {
-                    System.Windows.MessageBox.Show($"Error: {response.StatusCode}");
-                }
-            }
-        }
+        //                MapImage.Source = writeableBitmap;
+        //            }
+        //        }
+        //        else
+        //        {
+        //            System.Windows.MessageBox.Show($"Error: {response.StatusCode}");
+        //        }
+        //    }
+        //}
 
         private async Task LoadMapAsync2()
         {
-            //int width = 1024;
-            //int height = 768;
-            int width = 1024*2;
-            int height = 768*2;
-
             //if (pathlatMax > latMax || pathlatMin < latMin || pathlngMax > lngMax || pathlngMin < lngMin)
             //{
             //    if(zoom -1 >= 0)
@@ -238,8 +247,7 @@ namespace nmapgprviewer
             //    else zoom = 0;
             //}
             zoom = 18; // test purpose
-            //zoom = 18; // test purpose
-
+            
             //string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={longitude},{latitude}&level={zoom}&w={width}&h={height}&markers={markers}"; // with Marker
             string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={centerLatLng[1]},{centerLatLng[0]}&level={zoom}&w={width}&h={height}";
 
@@ -262,53 +270,7 @@ namespace nmapgprviewer
                         mbitmap.CacheOption = BitmapCacheOption.OnLoad;
                         mbitmap.EndInit();
 
-                        WriteableBitmap mapBitmap = new WriteableBitmap(mbitmap); // Map Image
-
-                        int roadimageindex = 0;
-                        foreach ( string roadImgPath in roadImagePaths)
-                        {
-                            BitmapImage roadBitmapImage = new BitmapImage(new Uri(roadImgPath, UriKind.RelativeOrAbsolute));
-                            WriteableBitmap roadBitmap; 
-                            if (roadBitmapImage.Format != PixelFormats.Bgr32)
-                                roadBitmap = new WriteableBitmap(new FormatConvertedBitmap(roadBitmapImage, PixelFormats.Bgr32, null, 0));
-                            else
-                                roadBitmap = new WriteableBitmap(roadBitmapImage);
-
-                            int zoomWidth = 1;
-                            int zoomHeight = 3;
-
-                            int roadwidth = roadBitmap.PixelWidth;
-                            int roadheight = roadBitmap.PixelHeight;
-
-                            int[] orgxy = { 0, 0 };
-                            int[] destxy = { 0, 0 };
-                            
-                            if (zoom > 13)
-                            {
-                                float ratio = (float)(Math.Pow(2, zoom - 16) / 1000.0f);
-
-                                zoomWidth = (int)(roadwidth * ratio);
-                                zoomHeight =(int)(roadheight * ratio)+1;
-                            }
-
-                            WriteableBitmap roadBitmap2 = roadBitmap.Resize(zoomWidth, zoomHeight, WriteableBitmapExtensions.Interpolation.Bilinear);
-
-                            orgxy = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
-                            if (insData.Length > roadimageindex + 1)
-                                destxy = latLngToPos(insData[roadimageindex + 1, 0], insData[roadimageindex + 1, 1], width, height);
-                            else
-                                destxy = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
-
-                            double radian2 = Math.Atan2(destxy[1] - orgxy[1], destxy[0] - orgxy[0]);
-
-                            double angle2 = (radian2 * 180 / Math.PI )-90;
-
-                            DrawRotateBitmap(mapBitmap, roadBitmap2, angle2, orgxy[0], orgxy[1]);
-
-                            roadimageindex++;
-                            
-                        }
-                        MapImage.Source = mapBitmap; // Map Image
+                        mapBitmap = new WriteableBitmap(mbitmap); // Map Image
                     }
                 }
                 else
@@ -317,6 +279,54 @@ namespace nmapgprviewer
                 }
             }
         }
+
+        private void DrawRoadImages()
+        {
+            int roadimageindex = 0;
+            foreach (string roadImgPath in roadImagePaths)
+            {
+                BitmapImage roadBitmapImage = new BitmapImage(new Uri(roadImgPath, UriKind.RelativeOrAbsolute));
+                WriteableBitmap roadBitmap; 
+                if (roadBitmapImage.Format != PixelFormats.Bgr32)
+                    roadBitmap = new WriteableBitmap(new FormatConvertedBitmap(roadBitmapImage, PixelFormats.Bgr32, null, 0));
+                else
+                    roadBitmap = new WriteableBitmap(roadBitmapImage);
+
+                int zoomWidth = 1;
+                int zoomHeight = 3;
+
+                int roadwidth = roadBitmap.PixelWidth;
+                int roadheight = roadBitmap.PixelHeight;
+
+                int[] orgxy = { 0, 0 };
+                int[] destxy = { 0, 0 };
+                            
+                if (zoom > 13)
+                {
+                    float ratio = (float)(Math.Pow(2, zoom - 16) / 1000.0f);
+
+                    zoomWidth = (int) (roadwidth* ratio);
+                    zoomHeight =(int) (roadheight* ratio)+2;
+                }
+
+                //WriteableBitmap roadBitmap2 = roadBitmap.Resize(zoomWidth, zoomHeight, WriteableBitmapExtensions.Interpolation.Bilinear);
+                roadBitmap = roadBitmap.Resize(zoomWidth, zoomHeight, WriteableBitmapExtensions.Interpolation.Bilinear);
+                orgxy = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
+                                        if (insData.Length > roadimageindex + 1)
+                                            destxy = latLngToPos(insData[roadimageindex + 1, 0], insData[roadimageindex + 1, 1], width, height);
+                                        else
+                                            destxy = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
+
+                double radian2 = Math.Atan2(destxy[1] - orgxy[1], destxy[0] - orgxy[0]);
+
+                double angle2 = (radian2 * 180 / Math.PI) + 270;
+
+                DrawRotateBitmap(roadBitmap, angle2, orgxy[0], orgxy[1]);
+                roadimageindex++;
+            }
+            MapImage.Source = mapBitmap; // Map Image
+        }
+
 
         private void SelectFolderButton_Click(object sender, RoutedEventArgs e)
         {
@@ -340,6 +350,11 @@ namespace nmapgprviewer
                     ParseINSData(insPath);
 
                     _ = LoadMapAsync2();
+
+                    if(mapBitmap != null)
+                    {
+                        DrawRoadImages();
+                    }
                 }
             }
         }
@@ -629,13 +644,14 @@ namespace nmapgprviewer
             return writableBitmap;
         }
 
-        public void DrawRotateBitmap(WriteableBitmap outputBitmap, BitmapSource source, double angle, int x, int y)
+        public void DrawRotateBitmap(BitmapSource source, double angle, int x, int y)
         {
             double radians = angle * Math.PI / 180;
             double cos = Math.Abs(Math.Cos(radians));
             double sin = Math.Abs(Math.Sin(radians));
             int newWidth = (int)(source.Width * cos + source.Height * sin);
             int newHeight = (int)(source.Width * sin + source.Height * cos);
+
             // Create a DrawingVisual to render the rotated image
             DrawingVisual visual = new DrawingVisual();
             using (DrawingContext context = visual.RenderOpen())
@@ -656,11 +672,80 @@ namespace nmapgprviewer
 
             WriteableBitmap renderWriteableBitmap = new WriteableBitmap(renderBitmap);
             // Convert the RenderTargetBitmap to a WritableBitmap
-            using (outputBitmap.GetBitmapContext())
+            using (mapBitmap.GetBitmapContext())
             {
-                outputBitmap.Blit(new Rect(x, y, newWidth, newHeight), renderWriteableBitmap, new Rect(0, 0, newWidth, newHeight), WriteableBitmapExtensions.BlendMode.Alpha);
+                mapBitmap.Blit(new Rect(x, y, newWidth, newHeight), renderWriteableBitmap, new Rect(0, 0, newWidth, newHeight), WriteableBitmapExtensions.BlendMode.Alpha);
+            }
+            // 이미지를 고정하여 메모리 사용 최적화
+            //if (source.CanFreeze)
+            //{
+            //    source.Freeze();
+            //}
+
+            //// 회전 변환 생성
+            //RotateTransform rotateTransform = new RotateTransform(angle);
+
+            //// 회전된 이미지를 그리기 위해 DrawingVisual 사용
+            //DrawingVisual drawingVisual = new DrawingVisual();
+            //using (DrawingContext drawingContext = drawingVisual.RenderOpen())
+            //{
+            //    drawingContext.PushTransform(rotateTransform);
+            //    drawingContext.DrawImage(source, new Rect(x, y, source.Width, source.Height));
+            //    drawingContext.Pop();
+            //}
+
+            //// 렌더링된 이미지를 WriteableBitmap으로 변환
+            //RenderTargetBitmap renderTargetBitmap = new RenderTargetBitmap(
+            //    (int)source.Width, (int)source.Height, source.DpiX, source.DpiY, PixelFormats.Pbgra32);
+            //renderTargetBitmap.Render(drawingVisual);
+
+            //// WriteableBitmap에 복사
+            //WriteableBitmap writeableBitmap = new WriteableBitmap(renderTargetBitmap);
+            ////writeableBitmap.Freeze(); // WriteableBitmap을 고정하여 메모리 사용 최적화
+            //// 이미지를 고정하여 메모리 사용 최적화
+
+            //using (mapBitmap.GetBitmapContext())
+            //{
+            //    mapBitmap.Blit(new Rect(x, y, newWidth, newHeight), writeableBitmap, new Rect(0, 0, newWidth, newHeight), WriteableBitmapExtensions.BlendMode.Alpha);
+            //}
+
+
+        }
+        private void MapImage_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            var scale = e.Delta > 0 ? 1.1 : 1 / 1.1;
+            ImageScaleTransform.ScaleX *= scale;
+            ImageScaleTransform.ScaleY *= scale;
+        }
+
+        private void MapImage_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+            {
+                ImageScaleTransform.ScaleX = 1.0;
+                ImageScaleTransform.ScaleY = 1.0;
+                ImageTranslateTransform.X = 0;
+                ImageTranslateTransform.Y = 0;
+                return;
             }
 
+            MapImage.CaptureMouse();
+            _start = e.GetPosition(this);
+            _origin = new Point(ImageTranslateTransform.X, ImageTranslateTransform.Y);
+        }
+
+        private void MapImage_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (!MapImage.IsMouseCaptured) return;
+
+            var p = e.GetPosition(this);
+            ImageTranslateTransform.X = _origin.X + (p.X - _start.X);
+            ImageTranslateTransform.Y = _origin.Y + (p.Y - _start.Y);
+        }
+
+        private void MapImage_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            MapImage.ReleaseMouseCapture();
         }
     }
 }

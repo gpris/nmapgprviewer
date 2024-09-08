@@ -11,8 +11,20 @@
 
 
         <Button Name="SelectFolderButton" Content="Project Folder" Grid.Row="0" HorizontalAlignment="Right" Click="SelectFolderButton_Click" Margin="5"/>
-        <TextBlock Name="SelectedFolderPathTextBlock" HorizontalAlignment="Center" Grid.Row="0" Margin="15"/>
-        <Image Name="MapImage" Grid.Row="1" Stretch="UniformToFill" />
+        <TextBlock Name="SelectedFolderPathTextBlock" HorizontalAlignment="Center" Grid.Row="2" Margin="15"/>
+        <ScrollViewer  Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Canvas x:Name="ImageCanvas">
+                <Image x:Name="MapImage" RenderTransformOrigin="0.5,0.5">
+                    <Image.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform x:Name="ImageScaleTransform" />
+                            <TranslateTransform x:Name="ImageTranslateTransform" />
+                        </TransformGroup>
+                    </Image.RenderTransform>
+                </Image>
+            </Canvas>
+        </ScrollViewer>
+        <!--<Image Name="MapImage" Grid.Row="1" Stretch="UniformToFill" />-->
         <!--<TextBox Name="BoundLatLng" HorizontalAlignment="Left" Height="58" Margin="20,700,0,0" TextWrapping="Wrap" Text="Bound(Lat,Lng,Lat,Lng)" VerticalAlignment="Top" Width="981"/>-->
     </Grid>
 </Window>
