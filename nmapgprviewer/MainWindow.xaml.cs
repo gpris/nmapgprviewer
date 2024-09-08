@@ -216,12 +216,6 @@ namespace nmapgprviewer
 
                         MapImage.Source = writeableBitmap;
                     }
-                    //double dlat = latMax - latitude;
-                    //double dlng = lngMax - longitude;
-                    //BoundLatLng.Text = $"({latMin}, {lngMin}), ({latMax}, {lngMax}) dlat:{dlat}, dlng:{dlng}, posx:{pos[0]}, posy={pos[1]}";
-                    //BoundLatLng.Text = $"({boundBox[0]}, {boundBox[1]}), ({boundBox[2]}, {boundBox[3]}) dlat:
-                    //{dlat}, dlng:{dlng}";
-
                 }
                 else
                 {
@@ -232,16 +226,19 @@ namespace nmapgprviewer
 
         private async Task LoadMapAsync2()
         {
-            int width = 1024;
-            int height = 768;
-            // 마커 파라미터 추가
-            //string markers = $"type:t|size:mid|pos:{centerLatLng[1]} {centerLatLng[0]}";
-            if (pathlatMax > latMax || pathlatMin < latMin || pathlngMax > lngMax || pathlngMin < lngMin)
-            {
-                if(zoom -1 >= 0)
-                    zoom = zoom-1;
-                else zoom = 0;
-            }
+            //int width = 1024;
+            //int height = 768;
+            int width = 1024*2;
+            int height = 768*2;
+
+            //if (pathlatMax > latMax || pathlatMin < latMin || pathlngMax > lngMax || pathlngMin < lngMin)
+            //{
+            //    if(zoom -1 >= 0)
+            //        zoom = zoom-1;
+            //    else zoom = 0;
+            //}
+            zoom = 18; // test purpose
+            //zoom = 18; // test purpose
 
             //string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={longitude},{latitude}&level={zoom}&w={width}&h={height}&markers={markers}"; // with Marker
             string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={centerLatLng[1]},{centerLatLng[0]}&level={zoom}&w={width}&h={height}";
@@ -267,7 +264,6 @@ namespace nmapgprviewer
 
                         WriteableBitmap mapBitmap = new WriteableBitmap(mbitmap); // Map Image
 
-                        //WriteableBitmap roadBitmapLayer = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null); // Road Image Layer 
                         int roadimageindex = 0;
                         foreach ( string roadImgPath in roadImagePaths)
                         {
@@ -277,19 +273,21 @@ namespace nmapgprviewer
                                 roadBitmap = new WriteableBitmap(new FormatConvertedBitmap(roadBitmapImage, PixelFormats.Bgr32, null, 0));
                             else
                                 roadBitmap = new WriteableBitmap(roadBitmapImage);
-                            //CopyBitmapImageToWriteableBitmap(roadBitmapImage, roadBitmap, 0, 0, roadBitmap.PixelWidth, roadBitmap.PixelHeight);
+
                             int zoomWidth = 1;
                             int zoomHeight = 3;
 
                             int roadwidth = roadBitmap.PixelWidth;
                             int roadheight = roadBitmap.PixelHeight;
+
                             int[] orgxy = { 0, 0 };
                             int[] destxy = { 0, 0 };
+                            
                             if (zoom > 13)
                             {
                                 float ratio = (float)(Math.Pow(2, zoom - 16) / 1000.0f);
 
-                                zoomWidth = (int)(roadwidth * ratio)+1;
+                                zoomWidth = (int)(roadwidth * ratio);
                                 zoomHeight =(int)(roadheight * ratio)+1;
                             }
 
@@ -304,20 +302,14 @@ namespace nmapgprviewer
                             double radian2 = Math.Atan2(destxy[1] - orgxy[1], destxy[0] - orgxy[0]);
 
                             double angle2 = (radian2 * 180 / Math.PI )-90;
+
                             DrawRotateBitmap(mapBitmap, roadBitmap2, angle2, orgxy[0], orgxy[1]);
 
                             roadimageindex++;
-                            //MapImage.Source = roadBitmapLayer; // Road Image Layer
                             
                         }
                         MapImage.Source = mapBitmap; // Map Image
                     }
-                    //double dlat = latMax - latitude;
-                    //double dlng = lngMax - longitude;
-                    //BoundLatLng.Text = $"({latMin}, {lngMin}), ({latMax}, {lngMax}) dlat:{dlat}, dlng:{dlng}, posx:{pos[0]}, posy={pos[1]}";
-                    //BoundLatLng.Text = $"({boundBox[0]}, {boundBox[1]}), ({boundBox[2]}, {boundBox[3]}) dlat:
-                    //{dlat}, dlng:{dlng}";
-
                 }
                 else
                 {
@@ -337,12 +329,6 @@ namespace nmapgprviewer
                 
                 if (result == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
                 {
-                    //SelectedFolderPathTextBlock.Text = "Selected Folder: " + dialog.SelectedPath;
-                    // Processing Project name from path ,
-                    // make fill out project relative folders name ,
-                    // get filelist from INS and road image 
-                    //System.IO.FileInfo fileInfo = new System.IO.FileInfo(dialog.SelectedPath);
-                    //string projectDirNames = fileInfo.DirectoryName;
                     projectPath = dialog.SelectedPath;
                     string[] arr1 = projectPath.Split('\\');
                     int arr1len = arr1.Length;

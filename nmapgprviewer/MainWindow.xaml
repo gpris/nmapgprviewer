@@ -3,9 +3,16 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Naver Map Viewer" Height="870" Width="1024">
     <Grid>
-        <Button Name="SelectFolderButton" Content="Project Folder" HorizontalAlignment="Right" VerticalAlignment="Top" Click="SelectFolderButton_Click" Margin="10"/>
-        <TextBlock Name="SelectedFolderPathTextBlock" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="15"/>
-        <Image Name="MapImage" Stretch="Uniform" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="30"/>
+        </Grid.RowDefinitions>
+
+
+        <Button Name="SelectFolderButton" Content="Project Folder" Grid.Row="0" HorizontalAlignment="Right" Click="SelectFolderButton_Click" Margin="5"/>
+        <TextBlock Name="SelectedFolderPathTextBlock" HorizontalAlignment="Center" Grid.Row="0" Margin="15"/>
+        <Image Name="MapImage" Grid.Row="1" Stretch="UniformToFill" />
         <!--<TextBox Name="BoundLatLng" HorizontalAlignment="Left" Height="58" Margin="20,700,0,0" TextWrapping="Wrap" Text="Bound(Lat,Lng,Lat,Lng)" VerticalAlignment="Top" Width="981"/>-->
     </Grid>
 </Window>
