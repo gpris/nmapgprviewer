@@ -31,5 +31,5 @@
 *.out
 *.app
 /.vs
-/nmapgprviewer/obj/Debug
-/nmapgprviewer/bin/Debug
+/nmapgprviewer/obj/
+/nmapgprviewer/bin/
