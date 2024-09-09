@@ -244,21 +244,79 @@ namespace nmapgprviewer
                 //WriteableBitmap roadBitmap2 = roadBitmap.Resize(zoomWidth, zoomHeight, WriteableBitmapExtensions.Interpolation.Bilinear);
                 roadBitmap = roadBitmap.Resize(zoomWidth, zoomHeight, WriteableBitmapExtensions.Interpolation.Bilinear);
                 orgxy = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
-                                        if (insData.Length > roadimageindex + 1)
-                                            destxy = latLngToPos(insData[roadimageindex + 1, 0], insData[roadimageindex + 1, 1], width, height);
-                                        else
-                                            destxy = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
+                if (insData.Length > roadimageindex + 1)
+                    destxy = latLngToPos(insData[roadimageindex + 1, 0], insData[roadimageindex + 1, 1], width, height);
+                else
+                    destxy = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
 
                 double radian2 = Math.Atan2(destxy[1] - orgxy[1], destxy[0] - orgxy[0]);
 
                 double angle2 = (radian2 * 180 / Math.PI) + 270;
-
+                if(angle2 > 360) angle2 -= 360;
+                if(angle2 < 0) angle2 += 360;
                 DrawRotateBitmap(roadBitmap, angle2, orgxy[0], orgxy[1]);
                 roadimageindex++;
             }
             MapImage.Source = mapBitmap; // Map Image
         }
 
+        private void DrawINSpoints()
+        {
+            int roadimageindex = 0;
+            int radius = 3;
+            WriteableBitmap writeableBitmap = new WriteableBitmap(2 * radius, 2 * radius, 96, 96, PixelFormats.Bgra32, null);
+
+
+            int stride = width * 4;
+            byte[] pixels = new byte[height * stride];
+            int centerX = radius;
+            int centerY = radius;
+            // Calculate the circle's bounding box
+            int x0 = centerX - radius;
+            int x1 = centerX + radius;
+            int y0 = centerY - radius;
+            int y1 = centerY + radius;
+
+            // Draw the circle
+            for (int y = y0; y <= y1; y++)
+            {
+                for (int x = x0; x <= x1; x++)
+                {
+                    int dx = x - centerX;
+                    int dy = y - centerY;
+                    if (dx * dx + dy * dy <= radius * radius)
+                    {
+                        int index = (y * stride) + (x * 4);
+                        if (index >= 0 && index < pixels.Length - 3)
+                        {
+                            pixels[index] = 0;     // Blue
+                            pixels[index + 1] = 0; // Green
+                            pixels[index + 2] = 255; // Red
+                            pixels[index + 3] = 255; // Alpha
+                        }
+                    }
+                }
+            }
+
+            // Write the pixels to the bitmap
+            writeableBitmap.WritePixels(new Int32Rect(0, 0, 2* radius, 2 * radius), pixels, stride, 0);
+
+            foreach (string roadImgPath in roadImagePaths)
+            {
+                int[] center = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
+
+                int posX = center[0];
+                int posY = center[1];
+
+                using (mapBitmap.GetBitmapContext())
+                {
+                    mapBitmap.Blit(new Rect(posX-radius, posY-radius, 2 * radius, 2 * radius), writeableBitmap, new Rect(0, 0, 2*radius, 2 * radius), WriteableBitmapExtensions.BlendMode.Alpha);
+                }
+
+                roadimageindex++;
+            }
+            MapImage.Source = mapBitmap; // Map Image
+        }
 
         private void SelectFolderButton_Click(object sender, RoutedEventArgs e)
         {
@@ -287,6 +345,7 @@ namespace nmapgprviewer
                     if (mapBitmap != null)
                     {
                         DrawRoadImages();
+                        //DrawINSpoints();
                     }
                 }
             }
@@ -350,9 +409,7 @@ namespace nmapgprviewer
                     pathlngMax = tmaxLng;
                     pathlngMin = tminLng;
                     SelectedFolderPathTextBlock.Text = "insIndex: " + insDataIndex + "with center:(" + centerLatLng[0] + "," + centerLatLng[1] + ")";
-                    
                 }
-
             }
             catch (Exception ex)
             {
@@ -412,7 +469,10 @@ namespace nmapgprviewer
             // Convert the RenderTargetBitmap to a WritableBitmap
             using (mapBitmap.GetBitmapContext())
             {
-                mapBitmap.Blit(new Rect(x, y, newWidth, newHeight), renderWriteableBitmap, new Rect(0, 0, newWidth, newHeight), WriteableBitmapExtensions.BlendMode.Alpha);
+                // Calculate the top-left corner to draw the rotated image
+                int drawX = x - newWidth / 2;
+                int drawY = y - newHeight / 2;
+                mapBitmap.Blit(new Rect(drawX, drawY, newWidth, newHeight), renderWriteableBitmap, new Rect(0, 0, newWidth, newHeight), WriteableBitmapExtensions.BlendMode.Alpha);
             }
         }
         private void MapImage_MouseWheel(object sender, MouseWheelEventArgs e)
