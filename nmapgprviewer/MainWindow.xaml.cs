@@ -101,7 +101,7 @@ namespace nmapgprviewer
         public String insPath = "";
         public String roadFolder = "";
         public String[] roadImagePaths;
-        public double[,] insData = new double[1000, 2];
+        public double[,] insData = new double[10000, 2];
         public int insDataIndex = 0;
         public double[] centerLatLng = { 37.331788, 126.713350 };
         public int zoom = 18;
@@ -117,6 +117,7 @@ namespace nmapgprviewer
         private int height = 768 * 2;
 
         public WriteableBitmap mapBitmap;
+        public WriteableBitmap roadsBitmap = new WriteableBitmap(1024*2, 768*2, 96,96, PixelFormats.Bgr32, null);
 
         public double toRadians(double degree) => degree * Math.PI / 180.0; // degree를 radian으로 변환
 
@@ -260,6 +261,71 @@ namespace nmapgprviewer
             MapImage.Source = mapBitmap; // Map Image
         }
 
+        private void DrawRoadImages2()
+        {
+            int roadimageindex = 0;
+            foreach (string roadImgPath in roadImagePaths)
+            {
+                BitmapImage roadBitmapImage = new BitmapImage(new Uri(roadImgPath, UriKind.RelativeOrAbsolute));
+                WriteableBitmap roadBitmap;
+                if (roadBitmapImage.Format != PixelFormats.Bgr32)
+                    roadBitmap = new WriteableBitmap(new FormatConvertedBitmap(roadBitmapImage, PixelFormats.Bgr32, null, 0));
+                else
+                    roadBitmap = new WriteableBitmap(roadBitmapImage);
+
+
+                for(int indx = 0; indx < 10; indx++)
+                {
+                    Int32Rect cropRect = new Int32Rect(0, indx*1000, (int)roadBitmap.Width, 1000);
+                    int stride = cropRect.Width * (roadBitmap.Format.BitsPerPixel / 8);
+                    byte[] pixelData = new byte[cropRect.Height * stride];
+
+                    // 원본 이미지에서 픽셀 데이터를 읽어옵니다.
+                    roadBitmap.CopyPixels(cropRect, pixelData, stride, 0);
+
+                    // 자른 이미지를 생성합니다.
+                    WriteableBitmap croppedBitmap = new WriteableBitmap(cropRect.Width, cropRect.Height, roadBitmap.DpiX, roadBitmap.DpiY, roadBitmap.Format, null);
+                    croppedBitmap.WritePixels(new Int32Rect(0, 0, cropRect.Width, cropRect.Height), pixelData, stride, 0);
+
+                    int roadwidth = croppedBitmap.PixelWidth;
+                    int roadheight = croppedBitmap.PixelHeight;
+
+                    int[] orgxy = { 0, 0 };
+                    int[] destxy = { 0, 0 };
+
+                    int zoomWidth = 1;
+                    int zoomHeight = 3;
+
+                    if (zoom > 13)
+                    {
+                        float ratio = (float)(Math.Pow(2, zoom - 16) / 1000.0f);
+
+                        zoomWidth = (int)(roadwidth * ratio);
+                        zoomHeight = (int)(roadheight * ratio)+2;
+                    }
+
+                    //WriteableBitmap roadBitmap2 = roadBitmap.Resize(zoomWidth, zoomHeight, WriteableBitmapExtensions.Interpolation.Bilinear);
+                    croppedBitmap = croppedBitmap.Resize(zoomWidth, zoomHeight, WriteableBitmapExtensions.Interpolation.Bilinear);
+                    orgxy = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
+                    if ((int)(insData.Length/2)-1 > roadimageindex)
+                        destxy = latLngToPos(insData[roadimageindex + 1, 0], insData[roadimageindex + 1, 1], width, height);
+                    else
+                        destxy = latLngToPos(insData[roadimageindex, 0], insData[roadimageindex, 1], width, height);
+
+                    double radian2 = Math.Atan2(destxy[1] - orgxy[1], destxy[0] - orgxy[0]);
+
+                    double angle2 = (radian2 * 180 / Math.PI) + 270;
+                    if (angle2 > 360) angle2 -= 360;
+                    if (angle2 < 0) angle2 += 360;
+                    DrawRotateBitmap(croppedBitmap, angle2, orgxy[0], orgxy[1]);
+                    roadimageindex++;
+                    
+                }
+                if (roadimageindex >= 1000) break;
+            }
+            MapImage.Source = roadsBitmap; // Map Image
+        }
+
         private void DrawINSpoints()
         {
             int roadimageindex = 0;
@@ -308,14 +374,14 @@ namespace nmapgprviewer
                 int posX = center[0];
                 int posY = center[1];
 
-                using (mapBitmap.GetBitmapContext())
+                using (roadsBitmap.GetBitmapContext())
                 {
-                    mapBitmap.Blit(new Rect(posX-radius, posY-radius, 2 * radius, 2 * radius), writeableBitmap, new Rect(0, 0, 2*radius, 2 * radius), WriteableBitmapExtensions.BlendMode.Alpha);
+                    roadsBitmap.Blit(new Rect(posX-radius, posY-radius, 2 * radius, 2 * radius), writeableBitmap, new Rect(0, 0, 2*radius, 2 * radius), WriteableBitmapExtensions.BlendMode.Alpha);
                 }
 
                 roadimageindex++;
             }
-            MapImage.Source = mapBitmap; // Map Image
+            MapImage.Source = roadsBitmap; // Map Image
         }
 
         private void SelectFolderButton_Click(object sender, RoutedEventArgs e)
@@ -340,11 +406,11 @@ namespace nmapgprviewer
                     ParseINSData(insPath);
 
                     _ = LoadMapAsync2();
-                    MapImage.Source = mapBitmap;
+                    MapImage.Source = roadsBitmap;
 
                     if (mapBitmap != null)
                     {
-                        DrawRoadImages();
+                        DrawRoadImages2();
                         //DrawINSpoints();
                     }
                 }
@@ -369,13 +435,15 @@ namespace nmapgprviewer
                     double tminLng = 132.0;
                     double tmaxLng = 124.0;
 
+                    double unitmeter = 1.0;
+
                     var records = csv.GetRecords<insGeoLocation>().ToList();
                     insDataIndex = 0;
                     List<double[]> tempLatLngs = new List<double[]>();
 
                     foreach (var record in records)
                     {
-                        if(((int)(record.distance / 10))==0) // Distance is 0.0m to 9.9m
+                        if(((int)(record.distance / unitmeter))==0) // Distance is 0.0m to unitmeter 
                         {
                             insData[0, 0] = records[0].latitude;
                             insData[0, 1] = records[0].longitude;
@@ -385,15 +453,15 @@ namespace nmapgprviewer
                             if (records[0].longitude > tmaxLng) tmaxLng = records[0].longitude;
                         }
  
-                        if (insDataIndex != ((int)(record.distance / 10))) // in Case of Distance value just changed to next value (every 10m)
+                        if (insDataIndex != ((int)(record.distance / unitmeter))) // in Case of Distance value just changed to next value (every 10m)
                         {
-                            insDataIndex = (int)(record.distance/10);
+                            insDataIndex = (int)(record.distance/ unitmeter);
                             insData[insDataIndex , 0] = record.latitude;
                             insData[insDataIndex , 1] = record.longitude;
                             tempLatLngs.Add(new double[] { record.latitude, record.longitude });
                             subtotalLat += record.latitude;
                             subtotalLng += record.longitude;
-                            if(record.latitude < tminLat) tminLat = record.latitude;
+                            if (record.latitude < tminLat) tminLat = record.latitude;
                             if (record.latitude > tmaxLat) tmaxLat = record.latitude;
                             if (record.longitude < tminLng) tminLng = record.longitude;
                             if (record.longitude > tmaxLng) tmaxLng = record.longitude;
@@ -467,12 +535,12 @@ namespace nmapgprviewer
 
             WriteableBitmap renderWriteableBitmap = new WriteableBitmap(renderBitmap);
             // Convert the RenderTargetBitmap to a WritableBitmap
-            using (mapBitmap.GetBitmapContext())
+            using (roadsBitmap.GetBitmapContext())
             {
                 // Calculate the top-left corner to draw the rotated image
                 int drawX = x - newWidth / 2;
                 int drawY = y - newHeight / 2;
-                mapBitmap.Blit(new Rect(drawX, drawY, newWidth, newHeight), renderWriteableBitmap, new Rect(0, 0, newWidth, newHeight), WriteableBitmapExtensions.BlendMode.Alpha);
+                roadsBitmap.Blit(new Rect(drawX, drawY, newWidth, newHeight), renderWriteableBitmap, new Rect(0, 0, newWidth, newHeight), WriteableBitmapExtensions.BlendMode.Alpha);
             }
         }
         private void MapImage_MouseWheel(object sender, MouseWheelEventArgs e)
