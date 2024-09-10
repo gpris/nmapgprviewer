@@ -147,8 +147,8 @@ namespace nmapgprviewer
         {
             double dw = 2.0 * (shiftDegreesEW) / width;
             double dh = 2.0 * (shiftDegreesNS) / height;
-            int x = (int)((lng - lngMin) / dw);
-            int y = (int)((latMax - lat) / dh); // cordinate system is upside down comparing to lat system.
+            int x = (int)Math.Round((lng - lngMin) / dw);
+            int y = (int)Math.Round((latMax - lat) / dh); // cordinate system is upside down comparing to lat system.
 
 
             int[] pos = { x, y }; // return x,y in array
@@ -421,62 +421,72 @@ namespace nmapgprviewer
         {
             try
             {
-                using (var reader = new StreamReader(insPath))
-                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                if (File.Exists(insPath))
                 {
-                    //double[] tempLatLng = new double[2]; 
-                    int fieldCount = csv.ColumnCount;
-                    //string[] headers = csv.get().ToList().ToList();
-                    double subtotalLat = 0.0;
-                    double subtotalLng = 0.0;
-                    
-                    double tminLat = 43.0;
-                    double tmaxLat = 33.0;
-                    double tminLng = 132.0;
-                    double tmaxLng = 124.0;
 
-                    double unitmeter = 1.0;
-
-                    var records = csv.GetRecords<insGeoLocation>().ToList();
-                    insDataIndex = 0;
-                    List<double[]> tempLatLngs = new List<double[]>();
-
-                    foreach (var record in records)
+                    using (var reader = new StreamReader(insPath))
+                    using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
                     {
-                        if(((int)(record.distance / unitmeter))==0) // Distance is 0.0m to unitmeter 
-                        {
-                            insData[0, 0] = records[0].latitude;
-                            insData[0, 1] = records[0].longitude;
-                            if (records[0].latitude < tminLat) tminLat = records[0].latitude;
-                            if (records[0].latitude > tmaxLat) tmaxLat = records[0].latitude;
-                            if (records[0].longitude < tminLng) tminLng = records[0].longitude;
-                            if (records[0].longitude > tmaxLng) tmaxLng = records[0].longitude;
-                        }
- 
-                        if (insDataIndex != ((int)(record.distance / unitmeter))) // in Case of Distance value just changed to next value (every 10m)
-                        {
-                            insDataIndex = (int)(record.distance/ unitmeter);
-                            insData[insDataIndex , 0] = record.latitude;
-                            insData[insDataIndex , 1] = record.longitude;
-                            tempLatLngs.Add(new double[] { record.latitude, record.longitude });
-                            subtotalLat += record.latitude;
-                            subtotalLng += record.longitude;
-                            if (record.latitude < tminLat) tminLat = record.latitude;
-                            if (record.latitude > tmaxLat) tmaxLat = record.latitude;
-                            if (record.longitude < tminLng) tminLng = record.longitude;
-                            if (record.longitude > tmaxLng) tmaxLng = record.longitude;
-                        }
+                        //double[] tempLatLng = new double[2]; 
+                        int fieldCount = csv.ColumnCount;
+                        //string[] headers = csv.get().ToList().ToList();
+                        double subtotalLat = 0.0;
+                        double subtotalLng = 0.0;
 
+                        double tminLat = 43.0;
+                        double tmaxLat = 33.0;
+                        double tminLng = 132.0;
+                        double tmaxLng = 124.0;
+
+                        double unitmeter = 1.0;
+
+                        var records = csv.GetRecords<insGeoLocation>().ToList();
+                        insDataIndex = 0;
+                        List<double[]> tempLatLngs = new List<double[]>();
+
+                        foreach (var record in records)
+                        {
+                            if (((int)(record.distance / unitmeter)) == 0) // Distance is 0.0m to unitmeter 
+                            {
+                                insData[0, 0] = records[0].latitude;
+                                insData[0, 1] = records[0].longitude;
+                                if (records[0].latitude < tminLat) tminLat = records[0].latitude;
+                                if (records[0].latitude > tmaxLat) tmaxLat = records[0].latitude;
+                                if (records[0].longitude < tminLng) tminLng = records[0].longitude;
+                                if (records[0].longitude > tmaxLng) tmaxLng = records[0].longitude;
+                            }
+
+                            if (insDataIndex != ((int)(record.distance / unitmeter))) // in Case of Distance value just changed to next value (every 10m)
+                            {
+                                insDataIndex = (int)(record.distance / unitmeter);
+                                insData[insDataIndex, 0] = record.latitude;
+                                insData[insDataIndex, 1] = record.longitude;
+                                tempLatLngs.Add(new double[] { record.latitude, record.longitude });
+                                subtotalLat += record.latitude;
+                                subtotalLng += record.longitude;
+                                if (record.latitude < tminLat) tminLat = record.latitude;
+                                if (record.latitude > tmaxLat) tmaxLat = record.latitude;
+                                if (record.longitude < tminLng) tminLng = record.longitude;
+                                if (record.longitude > tmaxLng) tmaxLng = record.longitude;
+                            }
+
+                        }
+                        subtotalLat += records[0].latitude;
+                        subtotalLng += records[0].longitude;
+                        centerLatLng[0] = subtotalLat / (insDataIndex + 1);
+                        centerLatLng[1] = subtotalLng / (insDataIndex + 1);
+                        pathlatMax = tmaxLat;
+                        pathlatMin = tminLat;
+                        pathlngMax = tmaxLng;
+                        pathlngMin = tminLng;
+                        SelectedFolderPathTextBlock.Text = "insIndex: " + insDataIndex + "with center:(" + centerLatLng[0] + "," + centerLatLng[1] + ")";
                     }
-                    subtotalLat += records[0].latitude;
-                    subtotalLng += records[0].longitude;
-                    centerLatLng[0] = subtotalLat / (insDataIndex + 1);
-                    centerLatLng[1] = subtotalLng / (insDataIndex + 1);
-                    pathlatMax = tmaxLat;
-                    pathlatMin = tminLat;
-                    pathlngMax = tmaxLng;
-                    pathlngMin = tminLng;
-                    SelectedFolderPathTextBlock.Text = "insIndex: " + insDataIndex + "with center:(" + centerLatLng[0] + "," + centerLatLng[1] + ")";
+
+
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show("Invalid INS File");
                 }
             }
             catch (Exception ex)
@@ -486,25 +496,32 @@ namespace nmapgprviewer
         }
 
         private void GetRoadImageList(string roadFolder)
-        {
+        {            
             FileInfo[] fileInfo;
             DirectoryInfo directoryInfo = new DirectoryInfo(roadFolder);
-            DirectoryInfo[] subdirinfo = directoryInfo.GetDirectories();
-
-            List<FileInfo> roadImages = new List<FileInfo>();
-            foreach (DirectoryInfo subdir in subdirinfo)
+            if(directoryInfo.Exists)
             {
-                roadImages.AddRange(subdir.GetFiles("*.jpg"));
+                DirectoryInfo[] subdirinfo = directoryInfo.GetDirectories();
+
+                List<FileInfo> roadImages = new List<FileInfo>();
+                foreach (DirectoryInfo subdir in subdirinfo)
+                {
+                    roadImages.AddRange(subdir.GetFiles("*.jpg"));
+                }
+
+                fileInfo = roadImages.ToArray();
+
+                List<string> roadImagePathList = new List<string>();
+                foreach (FileInfo file in fileInfo)
+                {
+                    roadImagePathList.Add(file.FullName);
+                }
+                roadImagePaths = roadImagePathList.ToArray();
             }
-
-            fileInfo = roadImages.ToArray();
-
-            List<string> roadImagePathList = new List<string>();
-            foreach (FileInfo file in fileInfo)
+            else
             {
-                roadImagePathList.Add(file.FullName);
+                System.Windows.MessageBox.Show("Invalid Project Folder");
             }
-            roadImagePaths = roadImagePathList.ToArray();
         }
 
         public void DrawRotateBitmap(BitmapSource source, double angle, int x, int y)
