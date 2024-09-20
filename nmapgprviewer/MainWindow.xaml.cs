@@ -177,7 +177,7 @@ namespace nmapgprviewer
             zoom = 18; // test purpose
             
             //string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={longitude},{latitude}&level={zoom}&w={width}&h={height}&markers={markers}"; // with Marker
-            string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={centerLatLng[1]},{centerLatLng[0]}&level={zoom}&w={width}&h={height}";
+            string url = $"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster?center={centerLatLng[1]},{centerLatLng[0]}&level={zoom}&w={width}&h={height}&maptype=satellite";
             try { 
                 using (HttpClient client = new HttpClient())
                 {
@@ -256,6 +256,7 @@ namespace nmapgprviewer
                 if(angle2 > 360) angle2 -= 360;
                 if(angle2 < 0) angle2 += 360;
                 DrawRotateBitmap(roadBitmap, angle2, orgxy[0], orgxy[1]);
+                //DrawRotateBitmap(mapBitmap, angle2, orgxy[0], orgxy[1]);
                 roadimageindex++;
             }
             MapImage.Source = mapBitmap; // Map Image
@@ -317,13 +318,15 @@ namespace nmapgprviewer
                     double angle2 = (radian2 * 180 / Math.PI) + 270;
                     if (angle2 > 360) angle2 -= 360;
                     if (angle2 < 0) angle2 += 360;
-                    DrawRotateBitmap(croppedBitmap, angle2, orgxy[0], orgxy[1]);
+                    //DrawRotateBitmap(croppedBitmap, angle2, orgxy[0], orgxy[1]);
+                    DrawRotateMapBitmap(croppedBitmap, angle2, orgxy[0], orgxy[1]);
                     roadimageindex++;
                     
                 }
                 if (roadimageindex >= 1000) break;
             }
-            MapImage.Source = roadsBitmap; // Map Image
+            //MapImage.Source = roadsBitmap; // Map Image
+            MapImage.Source = mapBitmap; // Map Image
         }
 
         private void DrawINSpoints()
@@ -374,14 +377,20 @@ namespace nmapgprviewer
                 int posX = center[0];
                 int posY = center[1];
 
-                using (roadsBitmap.GetBitmapContext())
+                //using (roadsBitmap.GetBitmapContext())
+                //{
+                //    roadsBitmap.Blit(new Rect(posX-radius, posY-radius, 2 * radius, 2 * radius), writeableBitmap, new Rect(0, 0, 2*radius, 2 * radius), WriteableBitmapExtensions.BlendMode.Alpha);
+                //}
+
+                using (mapBitmap.GetBitmapContext())
                 {
-                    roadsBitmap.Blit(new Rect(posX-radius, posY-radius, 2 * radius, 2 * radius), writeableBitmap, new Rect(0, 0, 2*radius, 2 * radius), WriteableBitmapExtensions.BlendMode.Alpha);
+                    mapBitmap.Blit(new Rect(posX - radius, posY - radius, 2 * radius, 2 * radius), writeableBitmap, new Rect(0, 0, 2 * radius, 2 * radius), WriteableBitmapExtensions.BlendMode.Alpha);
                 }
 
                 roadimageindex++;
             }
-            MapImage.Source = roadsBitmap; // Map Image
+            //MapImage.Source = roadsBitmap; // Map Image
+            MapImage.Source = mapBitmap; // Map Image
         }
 
         private void SelectFolderButton_Click(object sender, RoutedEventArgs e)
@@ -406,7 +415,8 @@ namespace nmapgprviewer
                     ParseINSData(insPath);
 
                     _ = LoadMapAsync2();
-                    MapImage.Source = roadsBitmap;
+                    //MapImage.Source = roadsBitmap;
+                    MapImage.Source = mapBitmap;
 
                     if (mapBitmap != null)
                     {
@@ -558,6 +568,43 @@ namespace nmapgprviewer
                 int drawX = x - newWidth / 2;
                 int drawY = y - newHeight / 2;
                 roadsBitmap.Blit(new Rect(drawX, drawY, newWidth, newHeight), renderWriteableBitmap, new Rect(0, 0, newWidth, newHeight), WriteableBitmapExtensions.BlendMode.Alpha);
+            }
+        }
+
+        public void DrawRotateMapBitmap(BitmapSource source, double angle, int x, int y)
+        {
+            double radians = angle * Math.PI / 180;
+            double cos = Math.Abs(Math.Cos(radians));
+            double sin = Math.Abs(Math.Sin(radians));
+            int newWidth = (int)(source.Width * cos + source.Height * sin);
+            int newHeight = (int)(source.Width * sin + source.Height * cos);
+
+            // Create a DrawingVisual to render the rotated image
+            DrawingVisual visual = new DrawingVisual();
+            using (DrawingContext context = visual.RenderOpen())
+            {
+                context.PushTransform(new TranslateTransform(newWidth / 2, newHeight / 2));
+                context.PushTransform(new RotateTransform(angle));
+                // Set the rotation transform
+                context.PushTransform(new TranslateTransform(-source.Width / 2, -source.Height / 2));
+                // Draw the original image onto the DrawingVisual
+                context.DrawImage(source, new Rect(0, 0, source.Width, source.Height));
+            }
+
+            // Render the DrawingVisual to a RenderTargetBitmap
+            RenderTargetBitmap renderBitmap = new RenderTargetBitmap(
+               newWidth, newHeight, source.DpiX, source.DpiY, PixelFormats.Pbgra32);
+
+            renderBitmap.Render(visual);
+
+            WriteableBitmap renderWriteableBitmap = new WriteableBitmap(renderBitmap);
+            // Convert the RenderTargetBitmap to a WritableBitmap
+            using (mapBitmap.GetBitmapContext())
+            {
+                // Calculate the top-left corner to draw the rotated image
+                int drawX = x - newWidth / 2;
+                int drawY = y - newHeight / 2;
+                mapBitmap.Blit(new Rect(drawX, drawY, newWidth, newHeight), renderWriteableBitmap, new Rect(0, 0, newWidth, newHeight), WriteableBitmapExtensions.BlendMode.Alpha);
             }
         }
         private void MapImage_MouseWheel(object sender, MouseWheelEventArgs e)
